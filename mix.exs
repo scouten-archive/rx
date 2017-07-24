@@ -29,7 +29,8 @@ defmodule Rx.Mixfile do
     [{:coverex, "~> 1.4.13  ", only: :test},
      {:credo, "~> 0.8", only: [:dev, :test]},
      {:dogma, "~> 0.1", only: :dev},
-     {:ex_doc, "~> 0.16", only: :dev}]
+     {:ex_doc, "~> 0.16", only: :dev},
+     {:gen_stage, "~> 0.12"}]
   end
 
   defp description, do: "ReactiveX for Elixir"
