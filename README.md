@@ -28,5 +28,5 @@ Though it follows some similar implementation patterns to the existing
 
 - RxElixir is _not_ well suited for processing large volumes of data, especially
   where parallel processing is advantageous. (The example used to introduce Flow,
-  counting word frequency in a multi-gigabyte is far better suited to Flow than
+  counting word frequency in a multi-gigabyte file, is far better suited to Flow than
   RxElixir.)
