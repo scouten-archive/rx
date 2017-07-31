@@ -5,7 +5,10 @@
 
 # RxElixir: ReactiveX for Elixir
 
-RxElixir (or simply `Rx`) allows developers to express computations on asynchronous
+**VERY PRELIMINARY**: I'm making this repo public for now so I can use some of the
+free and open source tools, but it is far from a meaningful public release.
+
+RxElixir (or simply Rx) allows developers to express computations on asynchronous
 event streams. It offers several common pre-built patterns that allow you to respond
 to, combine, filter, and transform events.
 
