@@ -18,7 +18,7 @@ defmodule Rx.Observable do
   to implement the desired computation.
   """
 
-  defstruct stages: []
+  defstruct reversed_stages: []
 
   @doc ~S"""
   Creates an observable from the given function.
@@ -39,19 +39,83 @@ defmodule Rx.Observable do
     ...> end)
     ...> |> Enum.to_list()
     ["Hello", "World"]
-
-    # TO DO: Create an error example.
   """
   def create(fun) when is_function(fun, 1) do
-    %__MODULE__{stages: [%Rx.Observable.CreateStage{fun: fun}]}
+    %__MODULE__{reversed_stages: [%Rx.Observable.CreateStage{fun: fun}]}
   end
 
-  def start(%__MODULE__{stages: [%{__struct__: module} = stage]} = _observable) do
-    # TODO: Handle chains of Observables.
-    # TODO: Should this be start_link?
-    # TODO: Move this into a materialize module a la Flow?
+  @doc ~S"""
+  Converts each notification to a tuple (or the `:done` atom) describing the notification.
 
-    module.start(stage, :producer)
+  The mapping is done as follows:
+
+  * normal value -> `{:next, (value)}`
+  * error termination -> `{:error, (reason)}`
+  * normal termination -> `:done`
+
+  ## Examples
+    iex> Rx.Observable.create(fn next ->
+    ...>   next.("Hello")
+    ...>   next.("World")
+    ...> end)
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [{:next, "Hello"}, {:next, "World"}, :done]
+
+    iex> Rx.Observable.create(fn next ->
+    ...>   next.("Hello")
+    ...>   next.("World")
+    ...>   raise "foo"
+    ...> end)
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [{:next, "Hello"}, {:next, "World"}, {:error, %RuntimeError{message: "foo"}}]
+  """
+  def to_notifications(observable) do
+    add_stage(observable, %Rx.Observable.ToNotificationsStage{}, :to_notifications)
+  end
+
+  def start(%__MODULE__{reversed_stages: reversed_stages} = _observable) do
+    start_stages(reversed_stages)
+    # TODO: Move this into a materialize module a la Flow?
+  end
+
+  defp start_stages([%{__struct__: module} = producer_stage]) do
+    # TODO: Should this be start_link?
+    module.start(producer_stage, :producer)
+  end
+
+  defp start_stages([%{__struct__: module} = consumer_stage | more_stages]) do
+    {:ok, my_producer} = start_stages(more_stages)
+    {:ok, my_consumer} = module.start(consumer_stage, :producer_consumer)  # start_link?
+    GenStage.sync_subscribe(my_consumer, to: my_producer, cancel: :transient)
+    {:ok, my_consumer}
+  end
+
+  defp add_stage(%__MODULE__{reversed_stages: []} = _observable, _stage, fname) do
+    raise """
+    Rx.Observable.#{fname} can not be used here.
+
+    Try using Rx.Observable.create or some other function that creates a valid
+    source/producer Observable first.
+    """
+  end
+
+  defp add_stage(%__MODULE__{reversed_stages: reversed_stages} = observable,
+                 stage, _fname)
+  do
+    reversed_stages = [stage | reversed_stages]
+    %{observable | reversed_stages: reversed_stages}
+  end
+
+  defp add_stage(not_observable, _stage, fname) do
+    raise """
+    Rx.Observable.#{fname} can not be used here.
+
+    The first argument ("observable") is not actually an Rx.Observable.
+
+    #{inspect not_observable}
+    """
   end
 
   defimpl Enumerable do

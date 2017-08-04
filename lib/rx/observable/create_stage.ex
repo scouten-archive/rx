@@ -41,7 +41,7 @@ defmodule Rx.Observable.CreateStage do
       fun.(next)
       :normal
     rescue
-      err -> err
+      err -> {:shutdown, err}
     end
     GenStage.async_info(self(), {:stop, reason})
     {:noreply, [], consumer}
