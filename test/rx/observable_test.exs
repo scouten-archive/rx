@@ -25,10 +25,9 @@ defmodule Rx.ObservableTest do
     test "crashes if source stream crashes on construction" do
       capture_log(fn ->
         assert {:bogus, _} = catch_exit(
-          o = Rx.Observable.create(fn _next ->
+          Enum.to_list(Rx.Observable.create(fn _next ->
             exit(:bogus)
-          end)
-          Enum.to_list(o)
+          end))
         )
       end)
     end
