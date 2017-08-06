@@ -21,14 +21,13 @@ defmodule Rx.ObservableTest do
     end
   end
 
+  @crash_observable %Rx.Observable{reversed_stages: [%CrashStage{}]}
+
   describe "to_list/1 (via Enumerable)" do
     test "crashes if source stream crashes on construction" do
       capture_log(fn ->
-        assert {:bogus, _} = catch_exit(
-          Enum.to_list(Rx.Observable.create(fn _next ->
-            exit(:bogus)
-          end))
-        )
+        assert {{%RuntimeError{message: "test failure in init fn"}, _}, _} =
+          catch_exit(Enum.to_list(@crash_observable))
       end)
     end
   end
