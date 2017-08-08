@@ -65,7 +65,16 @@ defmodule Rx.Observable do
     iex> Rx.Observable.create(fn next ->
     ...>   next.("Hello")
     ...>   next.("World")
-    ...>   raise "foo"
+    ...>   raise Rx.Error, message: "foo"
+    ...> end)
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [{:next, "Hello"}, {:next, "World"}, {:error, "foo"}]
+
+    iex> Rx.Observable.create(fn next ->
+    ...>   next.("Hello")
+    ...>   next.("World")
+    ...>   raise "foo"  # raises RuntimeError instead
     ...> end)
     ...> |> Rx.Observable.to_notifications()
     ...> |> Enum.to_list()
