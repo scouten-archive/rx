@@ -1,43 +1,23 @@
 defmodule Rx.Observable.ToNotificationsStage do
-  @moduledoc false  # internal, implements Rx.Obsevable.to_notifications
+  @moduledoc false  # internal, implements Rx.Observable.to_notifications
 
-  use GenStage
+  use Rx.Internal.TransformStage
+  alias Rx.Internal.TransformStage
 
   defstruct placeholder: nil
 
   def start(%__MODULE__{}, type, options \\ []), do:
-    GenStage.start(__MODULE__, type, options)
+    TransformStage.start(__MODULE__, type, options)
 
-  def init(type), do:
-    {type, :not_yet_subscribed}
+  def init(_args), do:
+    {:ok, [], :no_state}
 
-  def handle_subscribe(_type, _options, subscriber, _state), do:
-    {:automatic, subscriber}
+  def handle_events(events, state), do:
+    {:events, Enum.map(events, &({:next, &1})), state}
 
-  def handle_events(events, _from, state), do:
-    {:noreply, Enum.map(events, &({:next, &1})), state}
+  def handle_done(state), do:
+    {:done, [:done], state}
 
-  def handle_cancel({:cancel, reason}, _from, state), do:
-    send_termination(reason, state)
-  def handle_cancel({:down, :normal}, _from, state), do:
-    send_termination(:normal, state)
-  def handle_cancel({:down, {:shutdown, reason}}, _from, state), do:
-    send_termination(reason, state)
-  def handle_cancel({:down, reason}, _from, state), do:
-    send_termination(reason, state)
-
-  def handle_info({:stop, _reason}, state), do:
-    {:stop, :normal, state}
-      # Intentionally converting upstream error to :normal stop here.
-
-  defp send_termination(reason, {pid, refs} = subscriber) do
-    Process.send(pid,
-                 {:"$gen_consumer", {self(), refs}, [translate_reason(reason)]},
-                 [:noconnect])
-    {:stop, :normal, subscriber}
-  end
-
-  defp translate_reason(:normal), do: :done
-  defp translate_reason(%Rx.Error{message: message}), do: {:error, message}
-  defp translate_reason(reason), do: {:error, reason}
+  def handle_error(error, state), do:
+    {:done, [{:error, error}], state}
 end
