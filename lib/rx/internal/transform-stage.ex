@@ -15,12 +15,6 @@ defmodule Rx.Internal.TransformStage do
   @type options :: keyword()
 
   # TODO: Docs
-  @spec start_link(module, term, GenStage.options) :: GenServer.on_start
-  def start_link(module, args, options \\ []) when is_atom(module) and is_list(options) do
-    GenStage.start_link(__MODULE__, {module, args}, options)
-  end
-
-  # TODO: Docs
   @spec start(module, term, GenStage.options) :: GenServer.on_start
   def start(module, args, options \\ []) when is_atom(module) and is_list(options) do
     GenStage.start(__MODULE__, {module, args}, options)
