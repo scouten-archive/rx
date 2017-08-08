@@ -170,43 +170,6 @@ defmodule Rx.Internal.TransformStage do
       @behaviour Rx.Internal.TransformStage
 
       @doc false
-      def handle_call(msg, _from, state) do
-        # We do this to trick Dialyzer to not complain about non-local returns.
-        reason = {:bad_call, msg}
-        case :erlang.phash2(1, 1) do
-          0 -> exit(reason)
-          1 -> {:stop, reason, state}
-        end
-      end
-
-      @doc false
-      def handle_info(msg, state) do
-        proc =
-          case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
-            {_, name} -> name
-          end
-        :error_logger.error_msg('~p ~p received unexpected message in handle_info/2: ~p~n',
-                                [__MODULE__, proc, msg])
-        {:noreply, [], state}
-      end
-
-      @doc false
-      def handle_cast(msg, state) do
-        # We do this to trick Dialyzer to not complain about non-local returns.
-        reason = {:bad_cast, msg}
-        case :erlang.phash2(1, 1) do
-          0 -> exit(reason)
-          1 -> {:stop, reason, state}
-        end
-      end
-
-      @doc false
-      def handle_cancel(_reason, _from, state) do
-        {:noreply, [], state}
-      end
-
-      @doc false
       def terminate(_reason, _state) do
         :ok
       end
@@ -216,8 +179,7 @@ defmodule Rx.Internal.TransformStage do
         {:ok, state}
       end
 
-      defoverridable [handle_call: 3, handle_info: 2, handle_cancel: 3,
-                      handle_cast: 2, terminate: 2, code_change: 3]
+      defoverridable [terminate: 2, code_change: 3]
     end
   end
 end
