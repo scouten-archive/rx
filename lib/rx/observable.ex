@@ -57,7 +57,7 @@ defmodule Rx.Observable do
     # ...> |> Enum.to_list()
     # [:done]
   """
-  def empty(), do:
+  def empty, do:
     %__MODULE__{reversed_stages: [%Rx.Observable.EmptyStage{}]}
 
   @doc ~S"""
