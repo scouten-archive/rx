@@ -45,6 +45,26 @@ defmodule Rx.Observable do
   end
 
   @doc ~S"""
+  Creates an observable that emits no items and terminates with an error.
+
+  The function takes a single parameter which is the error to raise. This error
+  is thrown immediately upon subscription.
+
+  The error value should be a normal value, not an exception struct.
+
+  ## Examples
+    iex> Rx.Observable.throw("testing error")
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [{:error, "testing error"}]
+  """
+  def throw(err) do
+    %__MODULE__{reversed_stages: [%Rx.Observable.CreateStage{
+      fun: fn _observable -> raise Rx.Error, message: err end
+    }]}
+  end
+
+  @doc ~S"""
   Converts each notification to a tuple (or the `:done` atom) describing the notification.
 
   The mapping is done as follows:
