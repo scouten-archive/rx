@@ -45,6 +45,22 @@ defmodule Rx.Observable do
   end
 
   @doc ~S"""
+  Creates an observable that emits no items and immediately terminates normally.
+
+  ## Examples
+    iex> Rx.Observable.empty()
+    ...> |> Enum.to_list()
+    []
+
+    # iex> Rx.Observable.empty()
+    # ...> |> Rx.Observable.to_notifications()
+    # ...> |> Enum.to_list()
+    # [:done]
+  """
+  def empty, do:
+    %__MODULE__{reversed_stages: [%Rx.Observable.EmptyStage{}]}
+
+  @doc ~S"""
   Creates an observable that emits no items and terminates with an error.
 
   The function takes a single parameter which is the error to raise. This error
