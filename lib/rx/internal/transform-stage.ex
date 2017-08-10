@@ -127,7 +127,7 @@ defmodule Rx.Internal.TransformStage do
   defp handle_event_reply({:done, events, mod_state}, _fn_name, state)
     when is_list(events)
   do
-    send(self, :send_done)
+    send(self(), :send_done)
     {:noreply, events, %{state | state: mod_state}}
   end
   defp handle_event_reply({:error, [], reason, mod_state}, _fn_name, state) do
@@ -136,7 +136,7 @@ defmodule Rx.Internal.TransformStage do
   defp handle_event_reply({:error, events, reason, mod_state}, _fn_name, state)
     when is_list(events)
   do
-    send(self, {:send_error, translate_reason(reason)})
+    send(self(), {:send_error, translate_reason(reason)})
     {:noreply, events, %{state | state: mod_state}}
   end
   defp handle_event_reply(other, fn_name, state) do
