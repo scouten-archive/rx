@@ -9,16 +9,15 @@ defmodule Rx.Internal.TransformStage do
 
   use GenStage
 
-  defstruct [:mod, :state, :producer, :consumer]
+  defstruct [:mod, :state, :producer]
 
   @typedoc "The supported init options."
   @type options :: keyword()
 
   # TODO: Docs
   @spec start(module, term, GenStage.options) :: GenServer.on_start
-  def start(module, args, options \\ []) when is_atom(module) and is_list(options) do
+  def start(module, args, options \\ []) when is_atom(module) and is_list(options), do:
     GenStage.start(__MODULE__, {module, args}, options)
-  end
 
   @doc ~S"""
   Invoked when the server is started.
@@ -74,16 +73,15 @@ defmodule Rx.Internal.TransformStage do
       {:producer_consumer,
        %Rx.Internal.TransformStage{mod: mod,
                                    state: state,
-                                   producer: nil,
-                                   consumer: nil},
+                                   producer: nil},
        opts}
     end
 
   @doc false
   def handle_subscribe(:producer, _opts, sub, %__MODULE__{producer: nil} = state), do:
     {:automatic, %{state | producer: sub}}
-  def handle_subscribe(:consumer, _opts, sub, %__MODULE__{consumer: nil} = state), do:
-    {:automatic, %{state | consumer: sub}}
+  def handle_subscribe(:consumer, _opts, _sub, state), do:
+    {:automatic, state} # ignore
   def handle_subscribe(type, _opts, sub, state) do
     :error_logger.info_msg("""
     Rx.Internal.TransformStage is stopping after invalid subscription request
@@ -97,9 +95,8 @@ defmodule Rx.Internal.TransformStage do
   end
 
   @doc false
-  def handle_events(events, _from, %__MODULE__{mod: mod} =  state) do
+  def handle_events(events, _from, %__MODULE__{mod: mod} = state), do:
     handle_event_reply(mod.handle_events(events, state.state), :handle_events, state)
-  end
 
   def handle_cancel({:down, :normal}, from,
                     %__MODULE__{mod: mod, producer: from} = state)
@@ -124,23 +121,24 @@ defmodule Rx.Internal.TransformStage do
   do
     {:noreply, events, %{state | state: mod_state}}
   end
-
+  defp handle_event_reply({:done, [], mod_state}, _fn_name, state) do
+    {:stop, :normal, %{state | state: mod_state}}
+  end
   defp handle_event_reply({:done, events, mod_state}, _fn_name, state)
     when is_list(events)
   do
-    {pid, refs} = state.consumer
-    Process.send(pid, {:"$gen_consumer", {self(), refs}, events}, [:noconnect])
-    {:stop, :normal, %{state | state: mod_state}}
+    send(self, :send_done)
+    {:noreply, events, %{state | state: mod_state}}
   end
-
+  defp handle_event_reply({:error, [], reason, mod_state}, _fn_name, state) do
+    {:stop, translate_reason(reason), %{state | state: mod_state}}
+  end
   defp handle_event_reply({:error, events, reason, mod_state}, _fn_name, state)
     when is_list(events)
   do
-    {pid, refs} = state.consumer
-    Process.send(pid, {:"$gen_consumer", {self(), refs}, events}, [:noconnect])
-    {:stop, translate_reason(reason), %{state | state: mod_state}}
+    send(self, {:send_error, translate_reason(reason)})
+    {:noreply, events, %{state | state: mod_state}}
   end
-
   defp handle_event_reply(other, fn_name, state) do
     :error_logger.info_msg("""
     Rx.Internal.TransformStage is stopping after invalid reply
@@ -153,6 +151,9 @@ defmodule Rx.Internal.TransformStage do
 
     {:stop, :invalid_reply, state}
   end
+
+  def handle_info(:send_done, state), do: {:stop, :normal, state}
+  def handle_info({:send_error, why}, state), do: {:stop, why, state}
 
   defp translate_reason(:normal), do: :done
   defp translate_reason(%Rx.Error{message: message}), do: {:error, message}
