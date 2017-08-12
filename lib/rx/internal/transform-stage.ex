@@ -116,11 +116,6 @@ defmodule Rx.Internal.TransformStage do
     handle_event_reply(mod.handle_error(error, state.state), :handle_error, state)
   end
 
-  @exit_self_delay 10
-    # ^^ HACK: I'm not sure why this is necessary, but if I don't do this, we see
-    # sporadic failure of some tests that use GenStage.stream in its close_stream
-    # function citing "no process" error. I'd like to get rid of this.
-
   defp handle_event_reply({:events, events, mod_state}, _fn_name, state)
     when is_list(events)
   do
@@ -132,7 +127,7 @@ defmodule Rx.Internal.TransformStage do
   defp handle_event_reply({:done, events, mod_state}, _fn_name, state)
     when is_list(events)
   do
-    Process.send_after(self(), :send_done, @exit_self_delay)
+    send(self(), :send_done)
     {:noreply, events, %{state | state: mod_state}}
   end
   defp handle_event_reply({:error, [], reason, mod_state}, _fn_name, state) do
@@ -141,7 +136,7 @@ defmodule Rx.Internal.TransformStage do
   defp handle_event_reply({:error, events, reason, mod_state}, _fn_name, state)
     when is_list(events)
   do
-    Process.send_after(self(), {:send_error, translate_reason(reason)}, @exit_self_delay)
+    send(self(), {:send_error, translate_reason(reason)})
     {:noreply, events, %{state | state: mod_state}}
   end
   defp handle_event_reply(other, fn_name, state) do
