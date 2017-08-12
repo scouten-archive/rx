@@ -75,9 +75,7 @@ defmodule Rx.Observable do
     [{:error, "testing error"}]
   """
   def throw(err) do
-    %__MODULE__{reversed_stages: [%Rx.Observable.CreateStage{
-      fun: fn _observable -> raise Rx.Error, message: err end
-    }]}
+    %__MODULE__{reversed_stages: [%Rx.Observable.ThrowStage{message: err}]}
   end
 
   @doc ~S"""
