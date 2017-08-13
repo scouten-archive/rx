@@ -31,44 +31,66 @@ defmodule Rx.Internal.TestScheduler do
     notification with any other value. See examples below.
 
   ## Examples
-    # Simplest case (without options):
 
-    iex> Rx.Internal.TestScheduler.parse_marbles("-------a---b---|")
-    [
-      { 70, :next, "a"},
-      {110, :next, "b"},
-      {150, :done}
-    ]
+  Simplest case (without options):
 
-    # Using `values` option to replace placeholder values with real values:
+  ```
+  iex> Rx.Internal.TestScheduler.parse_marbles("-------a---b---|")
+  [
+    { 70, :next, "a"},
+    {110, :next, "b"},
+    {150, :done}
+  ]
+  ```
 
-    iex> Rx.Internal.TestScheduler.parse_marbles("-------a---b---|",
-    ...>                                         values: %{a: "ABC", b: "BCD"})
-    [
-      { 70, :next, "ABC"},
-      {110, :next, "BCD"},
-      {150, :done}
-    ]
+  Using `values` option to replace placeholder values with real values:
 
-    # Trailing spaces permitted:
+  ```
+  iex> Rx.Internal.TestScheduler.parse_marbles("-------a---b---|",
+  ...>                                         values: %{a: "ABC", b: "BCD"})
+  [
+    { 70, :next, "ABC"},
+    {110, :next, "BCD"},
+    {150, :done}
+  ]
+  ```
 
-    iex> Rx.Internal.TestScheduler.parse_marbles("--a--b--|   ",
-    ...>                                         values: %{a: "A", b: "B"})
-    [
-      {20, :next, "A"},
-      {50, :next, "B"},
-      {80, :done}
-    ]
+  Trailing spaces permitted:
 
-    # Explicit subscription start point:
+  ```
+  iex> Rx.Internal.TestScheduler.parse_marbles("--a--b--|   ",
+  ...>                                         values: %{a: "A", b: "B"})
+  [
+    {20, :next, "A"},
+    {50, :next, "B"},
+    {80, :done}
+  ]
+  ```
 
-    iex> Rx.Internal.TestScheduler.parse_marbles("---^---a---b---|",
-    ...>                                         values: %{a: "A", b: "B"})
-    [
-      { 40, :next, "A"},
-      { 80, :next, "B"},
-      {120, :done}
-    ]
+  Explicit subscription start point:
+
+  ```
+  iex> Rx.Internal.TestScheduler.parse_marbles("---^---a---b---|",
+  ...>                                         values: %{a: "A", b: "B"})
+  [
+    { 40, :next, "A"},
+    { 80, :next, "B"},
+    {120, :done}
+  ]
+  ```
+
+  Marble string that ends with an error:
+
+  ```
+  iex> Rx.Internal.TestScheduler.parse_marbles("-------a---b---#",
+  ...>                                         values: %{a: "A", b: "B"},
+  ...>                                         error: "omg error!")
+  [
+    { 70, :next, "A"},
+    {110, :next, "B"},
+    {150, :error, "omg error!"}
+  ]
+  ```
   """
   def parse_marbles(marbles, options \\ []) do
     if String.contains?(marbles, "!") do
@@ -77,7 +99,8 @@ defmodule Rx.Internal.TestScheduler do
     end
 
     values = Keyword.get(options, :values, %{})
-    acc = %{rnotifs: [], time: 0, values: values}
+    error = Keyword.get(options, :error, "error")
+    acc = %{rnotifs: [], time: 0, values: values, error: error}
 
     String.codepoints(marbles)
     |> Enum.reduce(acc, &parse_marble_char/2)
@@ -89,6 +112,8 @@ defmodule Rx.Internal.TestScheduler do
   defp parse_marble_char(" ", acc), do: add_idle_marble(acc)
   defp parse_marble_char("^", acc), do: %{acc | rnotifs: [], time: @frame_time_factor}
   defp parse_marble_char("|", acc), do: add_notif_marble(:done, acc)
+  defp parse_marble_char("#", %{error: error} = acc), do:
+    add_notif_marble(:error, error, acc)
   defp parse_marble_char(char, %{values: values} = acc), do:
     add_notif_marble(:next, Map.get(values, String.to_atom(char), char), acc)
 
@@ -97,6 +122,8 @@ defmodule Rx.Internal.TestScheduler do
 
   defp add_notif_marble(:next, value, %{time: time} = acc), do:
     add_notif_marble({time, :next, value}, acc)
+  defp add_notif_marble(:error, error, %{time: time} = acc), do:
+    add_notif_marble({time, :error, error}, acc)
   defp add_notif_marble(:done, %{time: time} = acc), do:
     add_notif_marble({time, :done}, acc)
 
