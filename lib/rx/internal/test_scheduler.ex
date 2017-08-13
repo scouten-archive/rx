@@ -7,13 +7,26 @@ defmodule Rx.Internal.TestScheduler do
   """
 
   @frame_time_factor 10
-    # each character in a marble diagram represents 10 "units" of time
 
   @doc ~S"""
   Converts a string containing a marble diagram of notifications into a sequence
   of expected notifications.
 
-  TODO: Write more documentation.
+  Each character in a marble diagram represents 10 "units" of time, also known as
+  a "frame." Characters are parsed as follows:
+
+  * `-` or ` `: Nothing happens in this frame.
+  * `|`: The observable terminates with `:done` status in this frame.
+  * Any other character: The observable generates a `:next` notification
+    during this frame. The value is the character *unless* overridden by a
+    corresponding entry in the `values` option.
+
+  ## Options
+
+  If provided, the `options` keyword list is interpreted as follows:
+
+  * `values:` is a map which can be used to replace a single-character `:next`
+    notification with any other value. See examples below.
 
   ## Examples
     # Simplest case (without options):
@@ -25,13 +38,13 @@ defmodule Rx.Internal.TestScheduler do
       {150, :done}
     ]
 
-    # Using `values` option to replace placeholders with real values:
+    # Using `values` option to replace placeholder values with real values:
 
     iex> Rx.Internal.TestScheduler.parse_marbles("-------a---b---|",
-    ...>                                         values: %{a: "A", b: "B"})
+    ...>                                         values: %{a: "ABC", b: "BCD"})
     [
-      { 70, :next, "A"},
-      {110, :next, "B"},
+      { 70, :next, "ABC"},
+      {110, :next, "BCD"},
       {150, :done}
     ]
 
