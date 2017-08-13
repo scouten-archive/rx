@@ -62,8 +62,6 @@ defmodule Rx.Internal.TransformStage do
       case mod.init(args) do
         {:ok, opts, state} ->
           init_transform(mod, opts, state)
-        {:stop, _} = stop ->
-          stop
         other ->
           {:stop, {:bad_return_value, other}}
       end
