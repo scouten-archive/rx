@@ -17,6 +17,8 @@ defmodule Rx.Internal.TestScheduler do
 
   * `-` or ` `: Nothing happens in this frame.
   * `|`: The observable terminates with `:done` status in this frame.
+  * `^`: The observer subscribes at this time point. All notifications before this
+    are ignored. Time begins at time zero at this point.
   * Any other character: The observable generates a `:next` notification
     during this frame. The value is the character *unless* overridden by a
     corresponding entry in the `values` option.
@@ -57,6 +59,16 @@ defmodule Rx.Internal.TestScheduler do
       {50, :next, "B"},
       {80, :done}
     ]
+
+    # Explicit subscription start point:
+
+    iex> Rx.Internal.TestScheduler.parse_marbles("---^---a---b---|",
+    ...>                                         values: %{a: "A", b: "B"})
+    [
+      { 40, :next, "A"},
+      { 80, :next, "B"},
+      {120, :done}
+    ]
   """
   def parse_marbles(marbles, options \\ []) do
     if String.contains?(marbles, "!") do
@@ -75,6 +87,7 @@ defmodule Rx.Internal.TestScheduler do
 
   defp parse_marble_char("-", acc), do: add_idle_marble(acc)
   defp parse_marble_char(" ", acc), do: add_idle_marble(acc)
+  defp parse_marble_char("^", acc), do: %{acc | rnotifs: [], time: @frame_time_factor}
   defp parse_marble_char("|", acc), do: add_notif_marble(:done, acc)
   defp parse_marble_char(char, %{values: values} = acc), do:
     add_notif_marble(:next, Map.get(values, String.to_atom(char), char), acc)

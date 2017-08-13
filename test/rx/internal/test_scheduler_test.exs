@@ -11,15 +11,6 @@ defmodule Rx.Internal.TestSchedulerTest do
         fn -> parse_marbles("---!---") end
     end
 
-    # it('should parse a marble string with a subscription point', () => {
-    #   const result = TestScheduler.parseMarbles('---^---a---b---|', { a: 'A', b: 'B' });
-    #   expect(result).deep.equal([
-    #     { frame: 40, notification: Notification.createNext('A') },
-    #     { frame: 80, notification: Notification.createNext('B') },
-    #     { frame: 120, notification: Notification.createComplete() }
-    #   ]);
-    # });
-    #
     # it('should parse a marble string with an error', () => {
     #   const result = TestScheduler.parseMarbles('-------a---b---#', { a: 'A', b: 'B' }, 'omg error!');
     #   expect(result).deep.equal([
