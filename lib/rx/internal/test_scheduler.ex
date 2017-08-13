@@ -151,4 +151,76 @@ defmodule Rx.Internal.TestScheduler do
   defp maybe_advance_time(%{in_group?: true} = acc), do: acc
   defp maybe_advance_time(%{time: old_time, in_group?: false} = acc), do:
     %{acc | time: old_time + @frame_time_factor}
+
+  @doc ~S"""
+  Converts a string containing a marble diagram of subscription events into a
+  map with the time of each event.
+
+  Note that there can be no more than one each of subscription and unsubscription
+  events.
+
+  Each character in a marble diagram represents 10 "units" of time, also known as
+  a "frame." Characters are parsed as follows:
+
+  * `-` or space: Nothing happens in this frame.
+  * `^`: The observer subscribes at this time point.
+  * `!`: The observer unsubscribes at this time point.
+  * `(` and `)`: Groups multiple events such that they all occur at the same time.
+  * Any other character: Invalid.
+
+  ## Examples
+
+  Simplest case:
+
+  ```
+  iex> Rx.Internal.TestScheduler.parse_marbles_as_subscriptions("---^---!-")
+  %{subscribed_frame: 30, unsubscribed_frame: 70}
+  ```
+
+  Subscribe only:
+
+  ```
+  iex> Rx.Internal.TestScheduler.parse_marbles_as_subscriptions("---^-")
+  %{subscribed_frame: 30, unsubscribed_frame: nil}
+  ```
+
+  Subscribe followed immediately by unsubscribe:
+
+  ```
+  iex> Rx.Internal.TestScheduler.parse_marbles_as_subscriptions("---(^!)-")
+  %{subscribed_frame: 30, unsubscribed_frame: 30}
+  ```
+  """
+  def parse_marbles_as_subscriptions(marbles) do
+    acc = %{subscribed_frame: nil, unsubscribed_frame: nil, in_group?: false, time: 0}
+
+    marbles
+    |> String.codepoints()
+    |> Enum.reduce(acc, &parse_subscription_marble/2)
+    |> Map.drop([:in_group?, :time])
+  end
+
+  defp parse_subscription_marble("-", acc), do: add_idle_marble(acc)
+  defp parse_subscription_marble(" ", acc), do: add_idle_marble(acc)
+  defp parse_subscription_marble("^", %{subscribed_frame: time}) when time != nil, do:
+    raise_duplicate_marble("subscription", "^")
+  defp parse_subscription_marble("^", %{time: time} = acc), do:
+    maybe_advance_time(%{acc | subscribed_frame: time})
+  defp parse_subscription_marble("!", %{unsubscribed_frame: time}) when time != nil, do:
+    raise_duplicate_marble("unsubscription", "!")
+  defp parse_subscription_marble("!", %{time: time} = acc), do:
+    maybe_advance_time(%{acc | unsubscribed_frame: time})
+  defp parse_subscription_marble("(", %{in_group?: false} = acc), do:
+    %{acc | in_group?: true}
+  defp parse_subscription_marble(")", %{in_group?: true} = acc), do:
+    maybe_advance_time(%{acc | in_group?: false})
+  defp parse_subscription_marble(char, _acc), do:
+    raise ArgumentError,
+          ~s"found an invalid character '#{char}' in subscription marble diagram."
+
+  defp raise_duplicate_marble(type, char) do
+    raise ArgumentError,
+          ~s"found a second #{type} point '#{char}' in a " <>
+            "subscription marble diagram. There can only be one."
+  end
 end
