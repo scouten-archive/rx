@@ -19,6 +19,7 @@ defmodule Rx.Internal.TestScheduler do
   * `|`: The observable terminates with `:done` status in this frame.
   * `^`: The observer subscribes at this time point. All notifications before this
     are ignored. Time begins at time zero at this point.
+  * `(` and `)`: Groups multiple events such that they all occur at the same time.
   * Any other character: The observable generates a `:next` notification
     during this frame. The value is the character *unless* overridden by a
     corresponding entry in the `values` option.
@@ -91,6 +92,18 @@ defmodule Rx.Internal.TestScheduler do
     {150, :error, "omg error!"}
   ]
   ```
+
+  Grouped values occur at the same time:
+
+  ```
+  iex> Rx.Internal.TestScheduler.parse_marbles("---(abc)-e-")
+  [
+    {30, :next, "a"},
+    {30, :next, "b"},
+    {30, :next, "c"},
+    {50, :next, "e"}
+  ]
+  ```
   """
   def parse_marbles(marbles, options \\ []) do
     if String.contains?(marbles, "!") do
@@ -100,7 +113,7 @@ defmodule Rx.Internal.TestScheduler do
 
     values = Keyword.get(options, :values, %{})
     error = Keyword.get(options, :error, "error")
-    acc = %{rnotifs: [], time: 0, values: values, error: error}
+    acc = %{rnotifs: [], time: 0, values: values, error: error, in_group?: false}
 
     String.codepoints(marbles)
     |> Enum.reduce(acc, &parse_marble_char/2)
@@ -110,15 +123,19 @@ defmodule Rx.Internal.TestScheduler do
 
   defp parse_marble_char("-", acc), do: add_idle_marble(acc)
   defp parse_marble_char(" ", acc), do: add_idle_marble(acc)
-  defp parse_marble_char("^", acc), do: %{acc | rnotifs: [], time: @frame_time_factor}
+  defp parse_marble_char("^", acc), do:
+    maybe_advance_time(%{acc | rnotifs: [], time: 0})
+  defp parse_marble_char("(", %{in_group?: false} = acc), do:
+    %{acc | in_group?: true}
+  defp parse_marble_char(")", %{in_group?: true} = acc), do:
+    maybe_advance_time(%{acc | in_group?: false})
   defp parse_marble_char("|", acc), do: add_notif_marble(:done, acc)
   defp parse_marble_char("#", %{error: error} = acc), do:
     add_notif_marble(:error, error, acc)
   defp parse_marble_char(char, %{values: values} = acc), do:
     add_notif_marble(:next, Map.get(values, String.to_atom(char), char), acc)
 
-  defp add_idle_marble(%{time: time} = acc), do:
-    %{acc | time: time + @frame_time_factor}
+  defp add_idle_marble(acc), do: maybe_advance_time(acc)
 
   defp add_notif_marble(:next, value, %{time: time} = acc), do:
     add_notif_marble({time, :next, value}, acc)
@@ -127,6 +144,10 @@ defmodule Rx.Internal.TestScheduler do
   defp add_notif_marble(:done, %{time: time} = acc), do:
     add_notif_marble({time, :done}, acc)
 
-  defp add_notif_marble(notif, %{rnotifs: rnotifs, time: time} = acc), do:
-    %{acc | rnotifs: [notif | rnotifs], time: time + @frame_time_factor}
+  defp add_notif_marble(notif, %{rnotifs: rnotifs} = acc), do:
+    maybe_advance_time(%{acc | rnotifs: [notif | rnotifs]})
+
+  defp maybe_advance_time(%{in_group?: true} = acc), do: acc
+  defp maybe_advance_time(%{time: old_time, in_group?: false} = acc), do:
+    %{acc | time: old_time + @frame_time_factor}
 end

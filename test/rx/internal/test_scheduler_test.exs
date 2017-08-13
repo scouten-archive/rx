@@ -10,14 +10,5 @@ defmodule Rx.Internal.TestSchedulerTest do
         "conventional marble diagrams cannot have the unsubscription marker \"!\"",
         fn -> parse_marbles("---!---") end
     end
-
-    # it('should handle grouped values', () => {
-    #   const result = TestScheduler.parseMarbles('---(abc)---');
-    #   expect(result).deep.equal([
-    #     { frame: 30, notification: Notification.createNext('a') },
-    #     { frame: 30, notification: Notification.createNext('b') },
-    #     { frame: 30, notification: Notification.createNext('c') }
-    #   ]);
-    # });
   end
 end
