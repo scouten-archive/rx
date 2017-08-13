@@ -5,7 +5,7 @@ defmodule Rx.Mixfile do
     [app: :rx,
      version: "0.1.0",
      name: "Rx",
-     elixir: "~> 1.3.4 or ~> 1.4",
+     elixir: "~> 1.4",
      elixirc_options: [warnings_as_errors: true],
      deps: deps(),
      elixirc_paths: elixirc_paths(Mix.env),
