@@ -15,7 +15,7 @@ defmodule Rx.Internal.TestScheduler do
   Each character in a marble diagram represents 10 "units" of time, also known as
   a "frame." Characters are parsed as follows:
 
-  * `-` or ` `: Nothing happens in this frame.
+  * `-` or space: Nothing happens in this frame.
   * `|`: The observable terminates with `:done` status in this frame.
   * `^`: The observer subscribes at this time point. All notifications before this
     are ignored. Time begins at time zero at this point.
