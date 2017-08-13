@@ -65,25 +65,28 @@ defmodule Rx.Internal.TestScheduler do
     end
 
     values = Keyword.get(options, :values, %{})
-    acc = {[], 0, values}
+    acc = %{rnotifs: [], time: 0, values: values}
 
     String.codepoints(marbles)
     |> Enum.reduce(acc, &parse_marble_char/2)
-    |> elem(0)
+    |> Map.get(:rnotifs)
     |> Enum.reverse()
   end
 
   defp parse_marble_char("-", acc), do: add_idle_marble(acc)
   defp parse_marble_char(" ", acc), do: add_idle_marble(acc)
   defp parse_marble_char("|", acc), do: add_notif_marble(:done, acc)
-  defp parse_marble_char(char, {_, _, values} = acc), do:
+  defp parse_marble_char(char, %{values: values} = acc), do:
     add_notif_marble(:next, Map.get(values, String.to_atom(char), char), acc)
 
-  defp add_idle_marble({existing_notifs, time, values}), do:
-    {existing_notifs, time + @frame_time_factor, values}
+  defp add_idle_marble(%{time: time} = acc), do:
+    %{acc | time: time + @frame_time_factor}
 
-  defp add_notif_marble(:next, value, {existing_notifs, time, values}), do:
-    {[{time, :next, value} | existing_notifs], time + @frame_time_factor, values}
-  defp add_notif_marble(:done, {existing_notifs, time, values}), do:
-    {[{time, :done} | existing_notifs], time + @frame_time_factor, values}
+  defp add_notif_marble(:next, value, %{time: time} = acc), do:
+    add_notif_marble({time, :next, value}, acc)
+  defp add_notif_marble(:done, %{time: time} = acc), do:
+    add_notif_marble({time, :done}, acc)
+
+  defp add_notif_marble(notif, %{rnotifs: rnotifs, time: time} = acc), do:
+    %{acc | rnotifs: [notif | rnotifs], time: time + @frame_time_factor}
 end
