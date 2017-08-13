@@ -108,14 +108,15 @@ defmodule Rx.Internal.TestScheduler do
   def parse_marbles(marbles, options \\ []) do
     if String.contains?(marbles, "!") do
       raise ArgumentError,
-            "conventional marble diagrams cannot have the unsubscription marker \"!\""
+            ~S/conventional marble diagrams cannot have the unsubscription marker "!"/
     end
 
     values = Keyword.get(options, :values, %{})
     error = Keyword.get(options, :error, "error")
     acc = %{rnotifs: [], time: 0, values: values, error: error, in_group?: false}
 
-    String.codepoints(marbles)
+    marbles
+    |> String.codepoints()
     |> Enum.reduce(acc, &parse_marble_char/2)
     |> Map.get(:rnotifs)
     |> Enum.reverse()
