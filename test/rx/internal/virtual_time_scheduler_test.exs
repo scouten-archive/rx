@@ -31,24 +31,43 @@ defmodule VirtualTimeSchedulerTest do
     refute_received {:invoked, ^my_ref, _n}
   end
 
-  #   it('should schedule things in order when flushed if each this is scheduled at random', () => {
-  #     const v = new VirtualTimeScheduler();
-  #     const invoked = [];
-  #     const invoke = (state: number) => {
-  #       invoked.push(state);
-  #     };
-  #     v.schedule(invoke, 0, 1);
-  #     v.schedule(invoke, 100, 2);
-  #     v.schedule(invoke, 0, 3);
-  #     v.schedule(invoke, 500, 4);
-  #     v.schedule(invoke, 0, 5);
-  #     v.schedule(invoke, 100, 6);
-  #
-  #     v.flush();
-  #
-  #     expect(invoked).to.deep.equal([1, 3, 5, 2, 6, 4]);
-  #   });
-  #
+  test "can run tasks in order sorted by time, even if scheduled at random" do
+    v = VTS.new()
+    my_ref = make_ref()
+
+    invoke = fn(time, n) ->
+      send(self(), {:invoked, my_ref, time, n})
+    end
+
+    v = VTS.schedule(v, 0, invoke, 1)
+    v = VTS.schedule(v, 100, invoke, 2)
+    v = VTS.schedule(v, 0, invoke, 3)
+    v = VTS.schedule(v, 500, invoke, 4)
+    v = VTS.schedule(v, 0, invoke, 5)
+    v = VTS.schedule(v, 100, invoke, 6)
+    VTS.flush(v)
+
+    assert_received {:invoked, ^my_ref, time, n}
+    assert time == 0
+    assert n == 1
+    assert_received {:invoked, ^my_ref, time, n}
+    assert time == 0
+    assert n == 3
+    assert_received {:invoked, ^my_ref, time, n}
+    assert time == 0
+    assert n == 5
+    assert_received {:invoked, ^my_ref, time, n}
+    assert time == 100
+    assert n == 2
+    assert_received {:invoked, ^my_ref, time, n}
+    assert time == 100
+    assert n == 6
+    assert_received {:invoked, ^my_ref, time, n}
+    assert time == 500
+    assert n == 4
+    refute_received {:invoked, ^my_ref, _time, _n}
+  end
+
   #   it('should schedule things in order when there are negative delays', () => {
   #     const v = new VirtualTimeScheduler();
   #     const invoked = [];
