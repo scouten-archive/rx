@@ -7,7 +7,7 @@ defmodule VirtualTimeScheduler do
 
   def schedule(%__MODULE__{time: time_now, pending_events: old_events, seq: seq} = v,
                time_delta, fun, args)
-  when is_integer(time_delta) and time_delta >= 0 and is_function(fun, 2)
+  when is_integer(time_delta) and time_delta >= 0 and is_function(fun, 3)
   do
     sched_time = time_now + time_delta
     new_event = {sched_time, seq + 1, fun, args}
@@ -17,7 +17,7 @@ defmodule VirtualTimeScheduler do
 
   def run(%__MODULE__{pending_events: events} = _v) do
     Enum.each(events, fn({time, _seq, fun, args}) ->
-      fun.(time, args)
+      fun.(time, args, :acc)
     end)
   end
 end

@@ -7,7 +7,7 @@ defmodule VirtualTimeSchedulerTest do
     v = VTS.new()
     my_ref = make_ref()
 
-    invoke = fn(0, n) ->
+    invoke = fn(0, n, _acc) ->
       send(self(), {:invoked, my_ref, n})
     end
 
@@ -35,7 +35,7 @@ defmodule VirtualTimeSchedulerTest do
     v = VTS.new()
     my_ref = make_ref()
 
-    invoke = fn(time, n) ->
+    invoke = fn(time, n, _acc) ->
       send(self(), {:invoked, my_ref, time, n})
     end
 
@@ -73,7 +73,7 @@ defmodule VirtualTimeSchedulerTest do
 
     v = VTS.new()
     assert_raise FunctionClauseError, fn ->
-      VTS.schedule(v, -10, fn _time, _arg -> :noop end, 1)
+      VTS.schedule(v, -10, fn _time, _arg, _acc -> :noop end, 1)
     end
   end
 
