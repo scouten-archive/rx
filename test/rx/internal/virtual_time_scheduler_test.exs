@@ -16,7 +16,7 @@ defmodule VirtualTimeSchedulerTest do
     v = VTS.schedule(v, 0, invoke, 3)
     v = VTS.schedule(v, 0, invoke, 4)
     v = VTS.schedule(v, 0, invoke, 5)
-    VTS.flush(v)
+    VTS.run(v)
 
     assert_received {:invoked, ^my_ref, n}
     assert n == 1
@@ -45,7 +45,7 @@ defmodule VirtualTimeSchedulerTest do
     v = VTS.schedule(v, 500, invoke, 4)
     v = VTS.schedule(v, 0, invoke, 5)
     v = VTS.schedule(v, 100, invoke, 6)
-    VTS.flush(v)
+    VTS.run(v)
 
     assert_received {:invoked, ^my_ref, time, n}
     assert time == 0
@@ -90,18 +90,18 @@ defmodule VirtualTimeSchedulerTest do
   #       this.schedule(state, this.delay);
   #     }, 100, 'test');
   #
-  #     v.flush();
+  #     v.run();
   #     expect(count).to.equal(3);
   #   });
   #
-  #   it('should not execute virtual actions that have been rescheduled before flush', () => {
+  #   it('should not execute virtual actions that have been rescheduled before run', () => {
   #     const v = new VirtualTimeScheduler();
   #     let messages = [];
   #     let action: VirtualAction<string> = <VirtualAction<string>> v.schedule(function(state: string) {
   #       messages.push(state);
   #     }, 10, 'first message');
   #     action = <VirtualAction<string>> action.schedule('second message' , 10);
-  #     v.flush();
+  #     v.run();
   #     expect(messages).to.deep.equal(['second message']);
   #   });
   # });

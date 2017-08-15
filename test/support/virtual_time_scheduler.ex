@@ -15,7 +15,7 @@ defmodule VirtualTimeScheduler do
     %{v | pending_events: new_events, seq: seq + 1}
   end
 
-  def flush(%__MODULE__{pending_events: events} = _v) do
+  def run(%__MODULE__{pending_events: events} = _v) do
     Enum.each(events, fn({time, _seq, fun, args}) ->
       fun.(time, args)
     end)
