@@ -1,12 +1,44 @@
-defmodule Rx.Internal.TestScheduler do
-  @moduledoc ~S"""
-  Coordinates the running of tests across multiple OTP processes so that
-  tests can run quickly and predictably.
+defmodule MarbleTesting do
+  @moduledoc false
 
-  TODO: Write more documentation.
+  defmacro __using__(_) do
+    quote do
+      import MarbleTesting, only: [cold: 1, cold: 2, run: 1]
+      @compile {:inline, marbles: 2}
+
+      defp marbles(marbles, options \\ []), do:
+        MarbleTesting.parse_marbles(marbles, options)
+
+      defp sub_marbles(marbles), do:
+        MarbleTesting.parse_marbles_as_subscriptions(marbles)
+    end
+  end
+
+  defmodule ColdObservable do
+    @moduledoc false
+    defstruct [:events]
+  end
+
+  @doc ~S"""
+  Creates a cold observable for use in marble testing.
+
+  This event takes a marble diagram (see `parse_marbles/2`) and returns a
+  special instance of Rx.Observable which will generate the events for a
+  transform stage to process at the specified (virtual) times.
   """
+  def cold(marbles, options \\ []) do
+    events = parse_marbles(marbles, options)
+    %Rx.Observable{reversed_stages: [%__MODULE__.ColdObservable{events: events}]}
+  end
 
-  @frame_time_factor 10
+  @doc ~S"""
+  Runs a marble test.
+
+  TODO: Write more docs.
+  """
+  def run(%Rx.Observable{reversed_stages: _stages} = _observable) do
+    raise "not yet"
+  end
 
   @doc ~S"""
   Converts a string containing a marble diagram of notifications into a sequence
@@ -36,7 +68,7 @@ defmodule Rx.Internal.TestScheduler do
   Simplest case (without options):
 
   ```
-  iex> Rx.Internal.TestScheduler.parse_marbles("-------a---b---|")
+  iex> MarbleTesting.parse_marbles("-------a---b---|")
   [
     { 70, :next, "a"},
     {110, :next, "b"},
@@ -47,7 +79,7 @@ defmodule Rx.Internal.TestScheduler do
   Using `values` option to replace placeholder values with real values:
 
   ```
-  iex> Rx.Internal.TestScheduler.parse_marbles("-------a---b---|",
+  iex> MarbleTesting.parse_marbles("-------a---b---|",
   ...>                                         values: %{a: "ABC", b: "BCD"})
   [
     { 70, :next, "ABC"},
@@ -59,7 +91,7 @@ defmodule Rx.Internal.TestScheduler do
   Trailing spaces permitted:
 
   ```
-  iex> Rx.Internal.TestScheduler.parse_marbles("--a--b--|   ",
+  iex> MarbleTesting.parse_marbles("--a--b--|   ",
   ...>                                         values: %{a: "A", b: "B"})
   [
     {20, :next, "A"},
@@ -71,7 +103,7 @@ defmodule Rx.Internal.TestScheduler do
   Explicit subscription start point:
 
   ```
-  iex> Rx.Internal.TestScheduler.parse_marbles("---^---a---b---|",
+  iex> MarbleTesting.parse_marbles("---^---a---b---|",
   ...>                                         values: %{a: "A", b: "B"})
   [
     { 40, :next, "A"},
@@ -83,7 +115,7 @@ defmodule Rx.Internal.TestScheduler do
   Marble string that ends with an error:
 
   ```
-  iex> Rx.Internal.TestScheduler.parse_marbles("-------a---b---#",
+  iex> MarbleTesting.parse_marbles("-------a---b---#",
   ...>                                         values: %{a: "A", b: "B"},
   ...>                                         error: "omg error!")
   [
@@ -96,7 +128,7 @@ defmodule Rx.Internal.TestScheduler do
   Grouped values occur at the same time:
 
   ```
-  iex> Rx.Internal.TestScheduler.parse_marbles("---(abc)-e-")
+  iex> MarbleTesting.parse_marbles("---(abc)-e-")
   [
     {30, :next, "a"},
     {30, :next, "b"},
@@ -148,6 +180,8 @@ defmodule Rx.Internal.TestScheduler do
   defp add_notif_marble(notif, %{rnotifs: rnotifs} = acc), do:
     maybe_advance_time(%{acc | rnotifs: [notif | rnotifs]})
 
+  @frame_time_factor 10
+
   defp maybe_advance_time(%{in_group?: true} = acc), do: acc
   defp maybe_advance_time(%{time: old_time, in_group?: false} = acc), do:
     %{acc | time: old_time + @frame_time_factor}
@@ -173,21 +207,21 @@ defmodule Rx.Internal.TestScheduler do
   Simplest case:
 
   ```
-  iex> Rx.Internal.TestScheduler.parse_marbles_as_subscriptions("---^---!-")
+  iex> MarbleTesting.parse_marbles_as_subscriptions("---^---!-")
   %{subscribed_frame: 30, unsubscribed_frame: 70}
   ```
 
   Subscribe only:
 
   ```
-  iex> Rx.Internal.TestScheduler.parse_marbles_as_subscriptions("---^-")
+  iex> MarbleTesting.parse_marbles_as_subscriptions("---^-")
   %{subscribed_frame: 30, unsubscribed_frame: nil}
   ```
 
   Subscribe followed immediately by unsubscribe:
 
   ```
-  iex> Rx.Internal.TestScheduler.parse_marbles_as_subscriptions("---(^!)-")
+  iex> MarbleTesting.parse_marbles_as_subscriptions("---(^!)-")
   %{subscribed_frame: 30, unsubscribed_frame: 30}
   ```
   """

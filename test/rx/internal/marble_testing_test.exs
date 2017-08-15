@@ -1,8 +1,8 @@
-defmodule Rx.Internal.TestSchedulerTest do
+defmodule MarbleTestingTest do
   use ExUnit.Case, async: true
 
-  import Rx.Internal.TestScheduler
-  doctest Rx.Internal.TestScheduler
+  import MarbleTesting
+  doctest MarbleTesting
 
   describe "parse_marbles/2" do
     test "raises if marble string has unsubscription marker (!)" do
