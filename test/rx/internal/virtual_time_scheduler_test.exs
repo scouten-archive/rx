@@ -68,24 +68,15 @@ defmodule VirtualTimeSchedulerTest do
     refute_received {:invoked, ^my_ref, _time, _n}
   end
 
-  #   it('should schedule things in order when there are negative delays', () => {
-  #     const v = new VirtualTimeScheduler();
-  #     const invoked = [];
-  #     const invoke = (state: number) => {
-  #       invoked.push(state);
-  #     };
-  #     v.schedule(invoke, 0, 1);
-  #     v.schedule(invoke, 100, 2);
-  #     v.schedule(invoke, 0, 3);
-  #     v.schedule(invoke, -2, 4);
-  #     v.schedule(invoke, 0, 5);
-  #     v.schedule(invoke, -10, 6);
-  #
-  #     v.flush();
-  #
-  #     expect(invoked).to.deep.equal([6, 4, 1, 3, 5, 2]);
-  #   });
-  #
+  test "does not accept negative delays" do
+    # NOTE: This differs from RxJS implementation. Maybe we'll have to revisit?
+
+    v = VTS.new()
+    assert_raise FunctionClauseError, fn ->
+      VTS.schedule(v, -10, fn _time, _arg -> :noop end, 1)
+    end
+  end
+
   #   it('should support recursive scheduling', () => {
   #     const v = new VirtualTimeScheduler();
   #     let count = 0;

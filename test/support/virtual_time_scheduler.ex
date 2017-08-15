@@ -7,7 +7,7 @@ defmodule VirtualTimeScheduler do
 
   def schedule(%__MODULE__{time: time_now, pending_events: old_events, seq: seq} = v,
                time_delta, fun, args)
-  when time_delta >= 0 and is_function(fun, 2)
+  when is_integer(time_delta) and time_delta >= 0 and is_function(fun, 2)
   do
     sched_time = time_now + time_delta
     new_event = {sched_time, seq + 1, fun, args}
