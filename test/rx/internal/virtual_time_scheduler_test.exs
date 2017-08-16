@@ -4,11 +4,12 @@ defmodule VirtualTimeSchedulerTest do
   alias VirtualTimeScheduler, as: VTS
 
   test "can run a preconfigured sequence of events in order of addition" do
-    v = VTS.new()
+    v = VTS.new(:nop)
     my_ref = make_ref()
 
     invoke = fn(0, n, _acc) ->
       send(self(), {:invoked, my_ref, n})
+      {:nop, []}
     end
 
     v = VTS.schedule(v, 0, invoke, 1)
@@ -32,11 +33,12 @@ defmodule VirtualTimeSchedulerTest do
   end
 
   test "can run tasks in order sorted by time, even if scheduled at random" do
-    v = VTS.new()
+    v = VTS.new(:nop)
     my_ref = make_ref()
 
     invoke = fn(time, n, _acc) ->
       send(self(), {:invoked, my_ref, time, n})
+      {:nop, []}
     end
 
     v = VTS.schedule(v, 0, invoke, 1)
@@ -71,7 +73,7 @@ defmodule VirtualTimeSchedulerTest do
   test "does not accept negative delays" do
     # NOTE: This differs from RxJS implementation. Maybe we'll have to revisit?
 
-    v = VTS.new()
+    v = VTS.new(:nop)
     assert_raise FunctionClauseError, fn ->
       VTS.schedule(v, -10, fn _time, _arg, _acc -> :noop end, 1)
     end
