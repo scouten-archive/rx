@@ -77,32 +77,35 @@ defmodule VirtualTimeSchedulerTest do
     end
   end
 
-  #   it('should support recursive scheduling', () => {
-  #     const v = new VirtualTimeScheduler();
-  #     let count = 0;
-  #     const expected = [100, 200, 300];
-  #
-  #     v.schedule<string>(function(this: VirtualAction<string>, state: string) {
-  #       if (++count === 3) {
-  #         return;
-  #       }
-  #       expect(this.delay).to.equal(expected.shift());
-  #       this.schedule(state, this.delay);
-  #     }, 100, 'test');
-  #
-  #     v.run();
-  #     expect(count).to.equal(3);
-  #   });
-  #
-  #   it('should not execute virtual actions that have been rescheduled before run', () => {
-  #     const v = new VirtualTimeScheduler();
-  #     let messages = [];
-  #     let action: VirtualAction<string> = <VirtualAction<string>> v.schedule(function(state: string) {
-  #       messages.push(state);
-  #     }, 10, 'first message');
-  #     action = <VirtualAction<string>> action.schedule('second message' , 10);
-  #     v.run();
-  #     expect(messages).to.deep.equal(['second message']);
-  #   });
-  # });
+  defp recursive_invoke(time, n, acc) do
+    new_events = if n < 4, do: [{0, &recursive_invoke/3, n + 1}], else: []
+    {[{time, n} | acc], new_events}
+  end
+
+  test "can schedule new events at same 'time' while running" do
+    v = VTS.new([])
+    v = VTS.schedule(v, 0, &recursive_invoke/3, 1)
+
+    res = v
+      |> VTS.run()
+      |> Enum.reverse()
+
+    assert res == [{0, 1}, {0, 2}, {0, 3}, {0, 4}]
+  end
+
+  defp recursive_invoke_with_delay(time, n, acc) do
+    new_events = if n < 4, do: [{10, &recursive_invoke_with_delay/3, n + 1}], else: []
+    {[{time, n} | acc], new_events}
+  end
+
+  test "can schedule new events at later 'time' while running" do
+    v = VTS.new([])
+    v = VTS.schedule(v, 0, &recursive_invoke_with_delay/3, 1)
+
+    res = v
+      |> VTS.run()
+      |> Enum.reverse()
+
+    assert res == [{0, 1}, {10, 2}, {20, 3}, {30, 4}]
+  end
 end

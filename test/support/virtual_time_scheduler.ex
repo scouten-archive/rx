@@ -16,10 +16,32 @@ defmodule VirtualTimeScheduler do
 
   def run(%__MODULE__{pending_events: [], acc: acc}), do: acc
 
-  def run(%__MODULE__{pending_events: [{time, _s, fun, args} | events],
+  def run(%__MODULE__{pending_events: [{time, _s, fun, args} | remaining_events],
                       seq: _seq, acc: acc} = v)
   do
-    {new_acc, _new_events} = fun.(time, args, acc)
-    run(%{v | pending_events: events, acc: new_acc})
+    {new_acc, new_events} = fun.(time, args, acc)
+    new_events = validate_events(new_events)
+
+    v = %{v | pending_events: remaining_events, acc: new_acc}
+
+    v = Enum.reduce(new_events, v, fn({time_delta, fun, arg}, acc) ->
+      schedule(acc, time + time_delta, fun, arg)
+    end)
+
+    run(v)
   end
+
+  defp validate_events(events) do
+    unless Enum.all?(events, &validate_event/1), do:
+      raise ArgumentError, "invalid event passed to VTS run callback\n#{inspect events}"
+
+    events
+  end
+
+  defp validate_event({time, fun, _arg})
+    when is_integer(time) and time >= 0 and is_function(fun, 3)
+  do
+    true
+  end
+  defp validate_event(_), do: false
 end
