@@ -4,12 +4,10 @@ defmodule VirtualTimeSchedulerTest do
   alias VirtualTimeScheduler, as: VTS
 
   test "can run a preconfigured sequence of events in order of addition" do
-    v = VTS.new(:nop)
-    my_ref = make_ref()
+    v = VTS.new([])
 
-    invoke = fn(0, n, _acc) ->
-      send(self(), {:invoked, my_ref, n})
-      {:nop, []}
+    invoke = fn(time, n, acc) ->
+      {[{time, n} | acc], []}
     end
 
     v = VTS.schedule(v, 0, invoke, 1)
@@ -17,28 +15,19 @@ defmodule VirtualTimeSchedulerTest do
     v = VTS.schedule(v, 0, invoke, 3)
     v = VTS.schedule(v, 0, invoke, 4)
     v = VTS.schedule(v, 0, invoke, 5)
-    VTS.run(v)
 
-    assert_received {:invoked, ^my_ref, n}
-    assert n == 1
-    assert_received {:invoked, ^my_ref, n}
-    assert n == 2
-    assert_received {:invoked, ^my_ref, n}
-    assert n == 3
-    assert_received {:invoked, ^my_ref, n}
-    assert n == 4
-    assert_received {:invoked, ^my_ref, n}
-    assert n == 5
-    refute_received {:invoked, ^my_ref, _n}
+    res = v
+      |> VTS.run()
+      |> Enum.reverse()
+
+    assert res == [{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}]
   end
 
   test "can run tasks in order sorted by time, even if scheduled at random" do
-    v = VTS.new(:nop)
-    my_ref = make_ref()
+    v = VTS.new([])
 
-    invoke = fn(time, n, _acc) ->
-      send(self(), {:invoked, my_ref, time, n})
-      {:nop, []}
+    invoke = fn(time, n, acc) ->
+      {[{time, n} | acc], []}
     end
 
     v = VTS.schedule(v, 0, invoke, 1)
@@ -47,27 +36,36 @@ defmodule VirtualTimeSchedulerTest do
     v = VTS.schedule(v, 500, invoke, 4)
     v = VTS.schedule(v, 0, invoke, 5)
     v = VTS.schedule(v, 100, invoke, 6)
-    VTS.run(v)
 
-    assert_received {:invoked, ^my_ref, time, n}
-    assert time == 0
-    assert n == 1
-    assert_received {:invoked, ^my_ref, time, n}
-    assert time == 0
-    assert n == 3
-    assert_received {:invoked, ^my_ref, time, n}
-    assert time == 0
-    assert n == 5
-    assert_received {:invoked, ^my_ref, time, n}
-    assert time == 100
-    assert n == 2
-    assert_received {:invoked, ^my_ref, time, n}
-    assert time == 100
-    assert n == 6
-    assert_received {:invoked, ^my_ref, time, n}
-    assert time == 500
-    assert n == 4
-    refute_received {:invoked, ^my_ref, _time, _n}
+    res = v
+      |> VTS.run()
+      |> Enum.reverse()
+
+    assert res == [{0, 1}, {0, 3}, {0, 5}, {100, 2}, {100, 6}, {500, 4}]
+  end
+
+  test "can run tasks that call different functions" do
+    v = VTS.new([])
+
+    invoke = fn(time, n, acc) ->
+      {[{time, n} | acc], []}
+    end
+
+    reverse = fn(_time, :ignore, acc) ->
+      {Enum.reverse(acc), []}
+    end
+
+    v = VTS.schedule(v, 0, invoke, 1)
+    v = VTS.schedule(v, 100, invoke, 2)
+    v = VTS.schedule(v, 0, invoke, 3)
+    v = VTS.schedule(v, 500, invoke, 4)
+    v = VTS.schedule(v, 0, invoke, 5)
+    v = VTS.schedule(v, 100, invoke, 6)
+    v = VTS.schedule(v, 700, reverse, :ignore)
+
+    res = VTS.run(v)
+
+    assert res == [{0, 1}, {0, 3}, {0, 5}, {100, 2}, {100, 6}, {500, 4}]
   end
 
   test "does not accept negative delays" do
