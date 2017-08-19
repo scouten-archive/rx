@@ -57,7 +57,7 @@ defmodule VirtualTimeSchedulerTest do
                          {700, reverse, :ignore}]}
     end
 
-    assert init |> VTS.run(nil, []) ==
+    assert VTS.run(init, nil, []) ==
       [{0, 1}, {0, 3}, {0, 5}, {100, 2}, {100, 6}, {500, 4}]
   end
 
