@@ -33,15 +33,17 @@ defmodule MarbleTesting do
       raise ArgumentError, ~S/cold observable cannot have unsubscription marker "!"/
 
     events = parse_marbles(marbles, options)
-    %Rx.Observable{reversed_stages: [%__MODULE__.ColdObservable{events: events}]}
+    %__MODULE__.ColdObservable{events: events}
+      # TODO: Need to tie this back to core Observable type.
   end
 
   @doc ~S"""
   Runs a marble test.
 
   TODO: Write more docs.
+  TODO: Change this so it runs core Observable type, not ColdObservable.
   """
-  def run(%Rx.Observable{reversed_stages: _stages} = _observable) do
+  def observe(%__MODULE__.ColdObservable{events: _events}) do
     raise "not yet"
   end
 

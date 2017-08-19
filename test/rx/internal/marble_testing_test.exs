@@ -4,6 +4,17 @@ defmodule MarbleTestingTest do
   import MarbleTesting
   doctest MarbleTesting
 
+  describe "cold/2" do
+    source = cold("-a-b-|", values: %{a: 1, b: 2})
+    {notifs, _subscriptions} = observe(source)
+
+    assert notifs == [
+      {20, :next, 1},
+      {40, :next, 2},
+      {60, :done}
+    ]
+  end
+
   describe "parse_marbles/2" do
     test "raises if marble string has unsubscription marker (!)" do
       assert_raise ArgumentError,
