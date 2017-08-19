@@ -26,11 +26,11 @@ defmodule VirtualTimeSchedulerTest do
     end
 
     init = fn(0, nil, acc) ->
-      {acc, new_events: [{  0, invoke, 1},
+      {acc, new_events: [{0, invoke, 1},
                          {100, invoke, 2},
-                         {  0, invoke, 3},
+                         {0, invoke, 3},
                          {500, invoke, 4},
-                         {  0, invoke, 5},
+                         {0, invoke, 5},
                          {100, invoke, 6}]}
     end
 
@@ -48,11 +48,11 @@ defmodule VirtualTimeSchedulerTest do
     end
 
     init = fn(0, nil, acc) ->
-      {acc, new_events: [{  0, invoke, 1},
+      {acc, new_events: [{0, invoke, 1},
                          {100, invoke, 2},
-                         {  0, invoke, 3},
+                         {0, invoke, 3},
                          {500, invoke, 4},
-                         {  0, invoke, 5},
+                         {0, invoke, 5},
                          {100, invoke, 6},
                          {700, reverse, :ignore}]}
     end
