@@ -1,34 +1,33 @@
 defmodule VirtualTimeScheduler do
   @moduledoc false  # Only used in testing infrastructure.
 
-  defstruct pending_events: [], seq: 0, acc: nil
-
-  def new(acc), do: %__MODULE__{acc: acc}
-
-  def schedule(%__MODULE__{pending_events: old_events, seq: seq} = v,
-               time, fun, args)
-  when is_integer(time) and time >= 0 and is_function(fun, 3)
-  do
-    new_event = {time, seq + 1, fun, args}
-    new_events = Enum.sort([new_event | old_events])
-    %{v | pending_events: new_events, seq: seq + 1}
+  def run(fun, arg, acc) do
+    v = %{pending_events: [{0, 0, fun, arg}], seq: 0, acc: acc}
+    run(v)
   end
 
-  def run(%__MODULE__{pending_events: [], acc: acc}), do: acc
+  defp run(%{pending_events: [], acc: acc}), do: acc
 
-  def run(%__MODULE__{pending_events: [{time, _s, fun, args} | remaining_events],
-                      seq: _seq, acc: acc} = v)
+  defp run(%{pending_events: [{time, _s, fun, args} | remaining_events],
+             acc: acc} = v)
   do
-    {new_acc, new_events} = fun.(time, args, acc)
-    new_events = validate_events(new_events)
+    {new_acc, opts} = fun.(time, args, acc)
+    new_events = Keyword.get(opts, :new_events, [])
 
     v = %{v | pending_events: remaining_events, acc: new_acc}
 
-    v = Enum.reduce(new_events, v, fn({time_delta, fun, arg}, acc) ->
+    v
+    |> add_events(time, new_events)
+    |> run()
+  end
+
+  defp add_events(v, _time, []), do: v
+  defp add_events(v, time, new_events) do
+    validate_events(new_events)
+
+    Enum.reduce(new_events, v, fn({time_delta, fun, arg}, acc) ->
       schedule(acc, time + time_delta, fun, arg)
     end)
-
-    run(v)
   end
 
   defp validate_events(events) do
@@ -44,4 +43,12 @@ defmodule VirtualTimeScheduler do
     true
   end
   defp validate_event(_), do: false
+
+  defp schedule(%{pending_events: old_events, seq: seq} = v, time, fun, args)
+    when is_integer(time) and time >= 0 and is_function(fun, 3)
+  do
+    new_event = {time, seq + 1, fun, args}
+    new_events = Enum.sort([new_event | old_events])
+    %{v | pending_events: new_events, seq: seq + 1}
+  end
 end
