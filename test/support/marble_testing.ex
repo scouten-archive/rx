@@ -1,10 +1,11 @@
 defmodule MarbleTesting do
   @moduledoc false
 
+  alias VirtualTimeScheduler, as: VTS
+
   defmacro __using__(_) do
     quote do
-      import MarbleTesting, only: [cold: 1, cold: 2, run: 1]
-      @compile {:inline, marbles: 2}
+      import MarbleTesting, only: [cold: 1, cold: 2, observe: 1, parse_marbles: 2]
 
       defp marbles(marbles, options \\ []), do:
         MarbleTesting.parse_marbles(marbles, options)
@@ -43,8 +44,33 @@ defmodule MarbleTesting do
   TODO: Write more docs.
   TODO: Change this so it runs core Observable type, not ColdObservable.
   """
-  def observe(%__MODULE__.ColdObservable{events: _events}) do
-    raise "not yet"
+  def observe(%__MODULE__.ColdObservable{} = observable) do
+    {r_notifs, subscriptions} = VTS.run(&subscribe/3, observable, {[], %{}})
+    {Enum.reverse(r_notifs), subscriptions}
+  end
+
+  # TODO: Move this out to real subscription module. (I think.)
+
+  defp subscribe(_time,
+                 %__MODULE__.ColdObservable{events: events} = _observable,
+                 {_r_notifs, _subscriptions} = acc)
+  do
+    # TODO: Generalize into a subscription function that all observables can impl.
+    # TODO: Add (un)subscription logging here.
+
+    {acc, new_events: Enum.map(events, &schedule_event/1)}
+  end
+
+  defp schedule_event({time, :next, value}), do: {time, &do_next_event/3, value}
+  defp schedule_event({time, :done}), do: {time, &do_done_event/3, nil}
+
+  # TODO: Generalize into a subscription wrapper/runner that calls Observable
+  # and marshals these responses appropriately.
+  defp do_next_event(time, value, {r_notifs, subscriptions} = _acc) do
+    {{[{time, :next, value} | r_notifs], subscriptions}, []}
+  end
+  defp do_done_event(time, nil, {r_notifs, subscriptions} = _acc) do
+    {{[{time, :done} | r_notifs], subscriptions}, []}
   end
 
   @doc ~S"""

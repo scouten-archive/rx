@@ -1,17 +1,20 @@
 defmodule MarbleTestingTest do
   use ExUnit.Case, async: true
 
-  import MarbleTesting
+  use MarbleTesting
   doctest MarbleTesting
 
   describe "cold/2" do
-    source = cold("-a-b-|", values: %{a: 1, b: 2})
+    source = cold            "-a-b-|", values: %{a: 1, b: 2}
+    expected = parse_marbles "-a-b-|", values: %{a: 1, b: 2}
     {notifs, _subscriptions} = observe(source)
 
+    assert notifs == expected
+
     assert notifs == [
-      {20, :next, 1},
-      {40, :next, 2},
-      {60, :done}
+      {10, :next, 1},
+      {30, :next, 2},
+      {50, :done}
     ]
   end
 
@@ -19,7 +22,7 @@ defmodule MarbleTestingTest do
     test "raises if marble string has unsubscription marker (!)" do
       assert_raise ArgumentError,
         ~S/conventional marble diagrams cannot have the unsubscription marker "!"/,
-        fn -> parse_marbles("---!---") end
+        fn -> MarbleTesting.parse_marbles("---!---") end
     end
   end
 
@@ -28,20 +31,20 @@ defmodule MarbleTestingTest do
       assert_raise ArgumentError,
         ~S/found a second subscription point '^' in a subscription marble diagram. / <>
           "There can only be one.",
-        fn -> parse_marbles_as_subscriptions("---^---^--") end
+        fn -> MarbleTesting.parse_marbles_as_subscriptions("---^---^--") end
     end
 
     test "raises if multiple unsubscription points found" do
       assert_raise ArgumentError,
         ~S/found a second unsubscription point '!' in a subscription marble diagram. / <>
          "There can only be one.",
-        fn -> parse_marbles_as_subscriptions("---^-!-!--") end
+        fn -> MarbleTesting.parse_marbles_as_subscriptions("---^-!-!--") end
     end
 
     test "raises if invalid marbles found" do
       assert_raise ArgumentError,
         ~S/found an invalid character 'x' in subscription marble diagram./,
-        fn -> parse_marbles_as_subscriptions("---^--x--") end
+        fn -> MarbleTesting.parse_marbles_as_subscriptions("---^--x--") end
     end
   end
 end
