@@ -39,14 +39,15 @@ defmodule MarbleTesting do
 
   # TODO: Move this out to real subscription module. (I think.)
 
-  defp subscribe(_time,
-                 %__MODULE__.ColdObservable{events: events} = _observable,
-                 {_r_notifs, _subscriptions} = acc)
+  defp subscribe(time,
+                 %__MODULE__.ColdObservable{events: events} = observable,
+                 {r_notifs, subscriptions} = _acc)
   do
     # TODO: Generalize into a subscription function that all observables can impl.
-    # TODO: Add (un)subscription logging here.
+    # TODO: Figure out how to record unsubscription cleanly.
 
-    {acc, new_events: Enum.map(events, &schedule_event/1)}
+    subscriptions = Map.put(subscriptions, observable, {time, nil})
+    {{r_notifs, subscriptions}, new_events: Enum.map(events, &schedule_event/1)}
   end
 
   defp schedule_event({time, :next, value}), do: {time, &do_next_event/3, value}
@@ -58,6 +59,10 @@ defmodule MarbleTesting do
     {{[{time, :next, value} | r_notifs], subscriptions}, []}
   end
   defp do_done_event(time, nil, {r_notifs, subscriptions} = _acc) do
+    # NASTY HACK: There can be only one subscription, right?
+    the_one_true_observable = List.first(Map.keys(subscriptions))
+    {sub, nil} = subscriptions[the_one_true_observable]
+    subscriptions = Map.put(subscriptions, the_one_true_observable, {sub, time})
     {{[{time, :done} | r_notifs], subscriptions}, []}
   end
 
@@ -206,7 +211,7 @@ defmodule MarbleTesting do
 
   @doc ~S"""
   Converts a string containing a marble diagram of subscription events into a
-  map with the time of each event.
+  tuple with the time of subscription and unsubscription.
 
   Note that there can be no more than one each of subscription and unsubscription
   events.
@@ -225,31 +230,33 @@ defmodule MarbleTesting do
   Simplest case:
 
   ```
-  iex> MarbleTesting.marbles_as_subscriptions("---^---!-")
-  %{subscribed_frame: 30, unsubscribed_frame: 70}
+  iex> MarbleTesting.sub_marbles("---^---!-")
+  {30, 70}
   ```
 
   Subscribe only:
 
   ```
-  iex> MarbleTesting.marbles_as_subscriptions("---^-")
-  %{subscribed_frame: 30, unsubscribed_frame: nil}
+  iex> MarbleTesting.sub_marbles("---^-")
+  {30, nil}
   ```
 
   Subscribe followed immediately by unsubscribe:
 
   ```
-  iex> MarbleTesting.marbles_as_subscriptions("---(^!)-")
-  %{subscribed_frame: 30, unsubscribed_frame: 30}
+  iex> MarbleTesting.sub_marbles("---(^!)-")
+  {30, 30}
   ```
   """
-  def marbles_as_subscriptions(marbles) do
-    acc = %{subscribed_frame: nil, unsubscribed_frame: nil, in_group?: false, time: 0}
+  def sub_marbles(marbles) do
+    seed = %{subscribed_frame: nil, unsubscribed_frame: nil, in_group?: false, time: 0}
 
-    marbles
-    |> String.codepoints()
-    |> Enum.reduce(acc, &parse_subscription_marble/2)
-    |> Map.drop([:in_group?, :time])
+    acc =
+      marbles
+      |> String.codepoints()
+      |> Enum.reduce(seed, &parse_subscription_marble/2)
+
+    {acc.subscribed_frame, acc.unsubscribed_frame}
   end
 
   defp parse_subscription_marble("-", acc), do: add_idle_marble(acc)
