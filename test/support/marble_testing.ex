@@ -27,6 +27,11 @@ defmodule MarbleTesting do
   transform stage to process at the specified (virtual) times.
   """
   def cold(marbles, options \\ []) do
+    if String.contains?(marbles, "^"), do:
+      raise ArgumentError, ~S/cold observable cannot have subscription offset "^"/
+    if String.contains?(marbles, "!"), do:
+      raise ArgumentError, ~S/cold observable cannot have unsubscription marker "!"/
+
     events = parse_marbles(marbles, options)
     %Rx.Observable{reversed_stages: [%__MODULE__.ColdObservable{events: events}]}
   end
