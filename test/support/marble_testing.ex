@@ -3,18 +3,6 @@ defmodule MarbleTesting do
 
   alias VirtualTimeScheduler, as: VTS
 
-  defmacro __using__(_) do
-    quote do
-      import MarbleTesting, only: [cold: 1, cold: 2, observe: 1, parse_marbles: 2]
-
-      defp marbles(marbles, options \\ []), do:
-        MarbleTesting.parse_marbles(marbles, options)
-
-      defp sub_marbles(marbles), do:
-        MarbleTesting.parse_marbles_as_subscriptions(marbles)
-    end
-  end
-
   defmodule ColdObservable do
     @moduledoc false
     defstruct [:events]
@@ -23,7 +11,7 @@ defmodule MarbleTesting do
   @doc ~S"""
   Creates a cold observable for use in marble testing.
 
-  This event takes a marble diagram (see `parse_marbles/2`) and returns a
+  This event takes a marble diagram (see `marbles/2`) and returns a
   special instance of Rx.Observable which will generate the events for a
   transform stage to process at the specified (virtual) times.
   """
@@ -33,7 +21,7 @@ defmodule MarbleTesting do
     if String.contains?(marbles, "!"), do:
       raise ArgumentError, ~S/cold observable cannot have unsubscription marker "!"/
 
-    events = parse_marbles(marbles, options)
+    events = marbles(marbles, options)
     %__MODULE__.ColdObservable{events: events}
       # TODO: Need to tie this back to core Observable type.
   end
@@ -101,7 +89,7 @@ defmodule MarbleTesting do
   Simplest case (without options):
 
   ```
-  iex> MarbleTesting.parse_marbles("-------a---b---|")
+  iex> MarbleTesting.marbles("-------a---b---|")
   [
     { 70, :next, "a"},
     {110, :next, "b"},
@@ -112,8 +100,7 @@ defmodule MarbleTesting do
   Using `values` option to replace placeholder values with real values:
 
   ```
-  iex> MarbleTesting.parse_marbles("-------a---b---|",
-  ...>                                         values: %{a: "ABC", b: "BCD"})
+  iex> MarbleTesting.marbles("-------a---b---|", values: %{a: "ABC", b: "BCD"})
   [
     { 70, :next, "ABC"},
     {110, :next, "BCD"},
@@ -124,8 +111,7 @@ defmodule MarbleTesting do
   Trailing spaces permitted:
 
   ```
-  iex> MarbleTesting.parse_marbles("--a--b--|   ",
-  ...>                                         values: %{a: "A", b: "B"})
+  iex> MarbleTesting.marbles("--a--b--|   ", values: %{a: "A", b: "B"})
   [
     {20, :next, "A"},
     {50, :next, "B"},
@@ -136,8 +122,7 @@ defmodule MarbleTesting do
   Explicit subscription start point:
 
   ```
-  iex> MarbleTesting.parse_marbles("---^---a---b---|",
-  ...>                                         values: %{a: "A", b: "B"})
+  iex> MarbleTesting.marbles("---^---a---b---|", values: %{a: "A", b: "B"})
   [
     { 40, :next, "A"},
     { 80, :next, "B"},
@@ -148,9 +133,9 @@ defmodule MarbleTesting do
   Marble string that ends with an error:
 
   ```
-  iex> MarbleTesting.parse_marbles("-------a---b---#",
-  ...>                                         values: %{a: "A", b: "B"},
-  ...>                                         error: "omg error!")
+  iex> MarbleTesting.marbles("-------a---b---#",
+  ...>                       values: %{a: "A", b: "B"},
+  ...>                       error: "omg error!")
   [
     { 70, :next, "A"},
     {110, :next, "B"},
@@ -161,7 +146,7 @@ defmodule MarbleTesting do
   Grouped values occur at the same time:
 
   ```
-  iex> MarbleTesting.parse_marbles("---(abc)-e-")
+  iex> MarbleTesting.marbles("---(abc)-e-")
   [
     {30, :next, "a"},
     {30, :next, "b"},
@@ -170,7 +155,7 @@ defmodule MarbleTesting do
   ]
   ```
   """
-  def parse_marbles(marbles, options \\ []) do
+  def marbles(marbles, options \\ []) do
     if String.contains?(marbles, "!") do
       raise ArgumentError,
             ~S/conventional marble diagrams cannot have the unsubscription marker "!"/
@@ -240,25 +225,25 @@ defmodule MarbleTesting do
   Simplest case:
 
   ```
-  iex> MarbleTesting.parse_marbles_as_subscriptions("---^---!-")
+  iex> MarbleTesting.marbles_as_subscriptions("---^---!-")
   %{subscribed_frame: 30, unsubscribed_frame: 70}
   ```
 
   Subscribe only:
 
   ```
-  iex> MarbleTesting.parse_marbles_as_subscriptions("---^-")
+  iex> MarbleTesting.marbles_as_subscriptions("---^-")
   %{subscribed_frame: 30, unsubscribed_frame: nil}
   ```
 
   Subscribe followed immediately by unsubscribe:
 
   ```
-  iex> MarbleTesting.parse_marbles_as_subscriptions("---(^!)-")
+  iex> MarbleTesting.marbles_as_subscriptions("---(^!)-")
   %{subscribed_frame: 30, unsubscribed_frame: 30}
   ```
   """
-  def parse_marbles_as_subscriptions(marbles) do
+  def marbles_as_subscriptions(marbles) do
     acc = %{subscribed_frame: nil, unsubscribed_frame: nil, in_group?: false, time: 0}
 
     marbles
