@@ -79,7 +79,7 @@ defmodule VirtualTimeSchedulerTest do
   end
 
   test "can schedule new events at same 'time' while running" do
-    assert &recursive_invoke/3 |> VTS.run(1, []) |> Enum.reverse() ==
+    assert Enum.reverse(VTS.run(&recursive_invoke/3, 1, [])) ==
       [{0, 1}, {0, 2}, {0, 3}, {0, 4}]
   end
 
@@ -89,7 +89,7 @@ defmodule VirtualTimeSchedulerTest do
   end
 
   test "can schedule new events at later 'time' while running" do
-    assert &recursive_invoke_with_delay/3 |> VTS.run(1, []) |> Enum.reverse() ==
+    assert Enum.reverse(VTS.run(&recursive_invoke_with_delay/3, 1, [])) ==
       [{0, 1}, {10, 2}, {20, 3}, {30, 4}]
   end
 end
