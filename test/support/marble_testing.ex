@@ -28,11 +28,22 @@ defmodule MarbleTesting do
   TODO: Change this so it runs core Observable type, not ColdObservable.
   """
   def observe(%__MODULE__.ColdObservable{} = observable) do
-    # TODO: Wrap MT.CO.subscribe.
-    {r_notifs, subscriptions} = VTS.run(&MarbleTesting.ColdObservable.subscribe/3,
-                                        observable, {[], %{}})
+    {r_notifs, subscriptions} = VTS.run(&subscribe/3, observable, {[], %{}})
     {Enum.reverse(r_notifs), subscriptions}
   end
+
+  defp subscribe(time,
+                 %{__struct__: module} = observable,
+                 {_r_notifs, _subscriptions} = acc)
+  do
+    module.subscribe(time, observable, acc)
+    # TODO: Generalize into a subscription function that all observables can impl.
+    # TODO: Figure out how to record unsubscription cleanly.
+
+    # subscriptions = Map.put(subscriptions, observable, {time, nil})
+    # {{r_notifs, subscriptions}, new_events: Enum.map(events, &schedule_event/1)}
+  end
+
 
   # TODO: Move this out to real subscription module. (I think.)
 
