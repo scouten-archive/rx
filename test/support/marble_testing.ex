@@ -17,7 +17,7 @@ defmodule MarbleTesting do
       raise ArgumentError, ~S/cold observable cannot have unsubscription marker "!"/
 
     events = marbles(marbles, options)
-    %__MODULE__.ColdObservable{events: events}
+    %__MODULE__.ColdObservable{events: events, log_target_pid: self()}
       # TODO: Need to tie this back to core Observable type.
   end
 
@@ -28,24 +28,66 @@ defmodule MarbleTesting do
   TODO: Change this so it runs core Observable type, not ColdObservable.
   """
   def observe(%__MODULE__.ColdObservable{} = observable) do
-    {r_notifs, subscriptions} = VTS.run(&subscribe/3, observable, {[], %{}})
-    {Enum.reverse(r_notifs), subscriptions}
+    {r_notifs, _sub_states} = VTS.run(&subscribe/3, observable, {[], %{}})
+      # TODO: Build out a proper to_notifications "observer"
+      # for use in this context.
+    Enum.reverse(r_notifs)
   end
 
-  defp subscribe(time,
-                 %{__struct__: module} = observable,
-                 {_r_notifs, _subscriptions} = acc)
+  defp subscribe(time, %{__struct__: module} = observable, acc) do
+    handle_observable_reply(module.subscribe(time, observable),
+                            time, observable, acc)
+  end
+
+  defp handle_observable_reply(reply, time, observable, acc) do
+    acc
+    |> handle_observable_events(time, reply, observable)
+    |> handle_observable_new_events(observable)
+  end
+
+  defp handle_observable_events({r_notifs, sub_states} = _acc,
+                                _time, {:ok, sub_state, options},
+                                observable)
   do
-    module.subscribe(time, observable, acc)
-    # TODO: Generalize into a subscription function that all observables can impl.
-    # TODO: Figure out how to record unsubscription cleanly.
-
-    # subscriptions = Map.put(subscriptions, observable, {time, nil})
-    # {{r_notifs, subscriptions}, new_events: Enum.map(events, &schedule_event/1)}
+    {r_notifs, Map.put(sub_states, observable, sub_state), options}
   end
 
+  defp handle_observable_events({r_notifs, sub_states} = _acc,
+                                time, {:next, values, sub_state, options},
+                                observable)
+  do
+    new_notifs =
+      values
+      |> Enum.reverse()
+      |> Enum.map(&({time, :next, &1}))
 
-  # TODO: Move this out to real subscription module. (I think.)
+    {new_notifs ++ r_notifs, Map.put(sub_states, observable, sub_state), options}
+  end
+
+  defp handle_observable_events({r_notifs, sub_states} = _acc,
+                                time, {:done, sub_state, options},
+                                observable)
+  do
+    {[{time, :done} | r_notifs], Map.put(sub_states, observable, sub_state), options}
+  end
+
+  defp handle_observable_new_events({r_notifs, sub_states, options}, observable) do
+    new_events =
+      options
+      |> Keyword.get(:new_events, [])
+      |> Enum.map(&(wrap_new_event(&1, observable)))
+
+    {{r_notifs, sub_states}, new_events: new_events}
+  end
+
+  defp wrap_new_event({time, fun, arg}, observable) do
+    {time, &invoke_observable_fn/3, {fun, observable, arg}}
+  end
+
+  defp invoke_observable_fn(time, {fun, observable, arg}, {r_notifs, sub_states}) do
+    handle_observable_reply(fun.(time, arg, Map.get(sub_states, observable)),
+                            time, observable, {r_notifs, sub_states})
+  end
 
 
   @doc ~S"""
