@@ -6,9 +6,11 @@ defmodule MarbleTesting do
   @doc ~S"""
   Creates a cold observable for use in marble testing.
 
-  This event takes a marble diagram (see `marbles/2`) and returns a
+  This function takes a marble diagram (see `marbles/2`) and returns a
   special instance of Rx.Observable which will generate the events for a
   transform stage to process at the specified (virtual) times.
+
+  # TODO: Make it actually return Rx.Observable.
   """
   def cold(marbles, options \\ []) do
     if String.contains?(marbles, "^"), do:
