@@ -28,6 +28,15 @@ defmodule MarbleTestingTest do
   end
 
   describe "marbles/2" do
+    test "treats spaces as idle frames" do
+      assert marbles("- - - -a- -b- -|") ==
+        [
+          { 70, :next, "a"},
+          {110, :next, "b"},
+          {150, :done}
+        ]
+    end
+
     test "raises if marble string has unsubscription marker (!)" do
       assert_raise ArgumentError,
         ~S/conventional marble diagrams cannot have the unsubscription marker "!"/,
