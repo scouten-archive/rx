@@ -26,8 +26,9 @@ defmodule MarbleTesting do
   @doc ~S"""
   Runs a marble test on a single Observable.
 
-  Subscribes to the Observable and returns a list of the notifications generated
-  during that subscription.
+  Subscribes to the Observable, runs it synchronously to completion using
+  VirtualTimeScheduler, then returns a list of the notifications generated
+  during the subscription.
 
   Typically used with `marbles/2`, which converts a marble diagram into a similar
   list of notifications. (In other words, use `marbles/2` to generate the expected
