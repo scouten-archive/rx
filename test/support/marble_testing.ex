@@ -98,9 +98,11 @@ defmodule MarbleTesting do
                    %{__struct__: module} = observable,
                    {_r_notifs, sub_states} = acc)
   do
-    handle_observable_reply(module.unsubscribe(time, Map.get(sub_states, observable)),
-                            time, observable, acc)
-    # TODO: Delete this observable's state from sub_states.
+    {{r_notifs, new_sub_states}, options} =
+      handle_observable_reply(module.unsubscribe(time, Map.get(sub_states, observable)),
+                                                 time, observable, acc)
+
+    {{r_notifs, Map.delete(new_sub_states, observable)}, options}
   end
 
   @doc ~S"""
