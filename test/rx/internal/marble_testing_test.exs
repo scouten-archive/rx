@@ -5,12 +5,26 @@ defmodule MarbleTestingTest do
   doctest MarbleTesting
 
   describe "cold/2" do
-    source = cold      "-a-b-|", values: %{a: 1, b: 2}
-    expected = marbles "-a-b-|", values: %{a: 1, b: 2}
-    subs = sub_marbles "^----!"
+    test "makes it easy to write marble tests" do
+      source = cold      "-a-b-|", values: %{a: 1, b: 2}
+      expected = marbles "-a-b-|", values: %{a: 1, b: 2}
+      subs = sub_marbles "^----!"
 
-    assert observe(source) == expected
-    assert subscriptions(source) == subs
+      assert observe(source) == expected
+      assert subscriptions(source) == subs
+    end
+
+    test "raises if cold observable has subscription offset" do
+      assert_raise ArgumentError,
+        ~S/cold observable cannot have subscription offset "^"/,
+        fn -> cold "--^-a-b-|" end
+    end
+
+    test "raises if cold observable has unsubscription marker" do
+      assert_raise ArgumentError,
+        ~S/cold observable cannot have unsubscription marker "!"/,
+        fn -> cold "-a-b-!" end
+    end
   end
 
   describe "marbles/2" do
