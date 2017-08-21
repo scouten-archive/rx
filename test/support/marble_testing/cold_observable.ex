@@ -11,7 +11,7 @@ defmodule MarbleTesting.ColdObservable do
 
   def unsubscribe(time, %{original_observable: obs} = state) do
     send(obs.log_target_pid, {:unsubscribed, time, obs})
-    {:ok, state}
+    {:ok, state, []}
   end
 
   defp schedule_event({time, :next, value}), do: {time, &do_next_event/3, value}

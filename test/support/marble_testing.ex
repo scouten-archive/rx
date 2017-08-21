@@ -49,7 +49,7 @@ defmodule MarbleTesting do
                                 _time, {:ok, sub_state, options},
                                 observable)
   do
-    {r_notifs, Map.put(sub_states, observable, sub_state), options}
+    {r_notifs, Map.put(sub_states, observable, sub_state), options, []}
   end
 
   defp handle_observable_events({r_notifs, sub_states} = _acc,
@@ -61,23 +61,28 @@ defmodule MarbleTesting do
       |> Enum.reverse()
       |> Enum.map(&({time, :next, &1}))
 
-    {new_notifs ++ r_notifs, Map.put(sub_states, observable, sub_state), options}
+    {new_notifs ++ r_notifs, Map.put(sub_states, observable, sub_state), options, []}
   end
 
   defp handle_observable_events({r_notifs, sub_states} = _acc,
                                 time, {:done, sub_state, options},
                                 observable)
   do
-    {[{time, :done} | r_notifs], Map.put(sub_states, observable, sub_state), options}
+    {[{time, :done} | r_notifs],
+     Map.put(sub_states, observable, sub_state),
+     options,
+     [{0, &unsubscribe/3, observable}]}
   end
 
-  defp handle_observable_new_events({r_notifs, sub_states, options}, observable) do
+  defp handle_observable_new_events({r_notifs, sub_states, options, internal_new_events},
+                                    observable)
+  do
     new_events =
       options
       |> Keyword.get(:new_events, [])
       |> Enum.map(&(wrap_new_event(&1, observable)))
 
-    {{r_notifs, sub_states}, new_events: new_events}
+    {{r_notifs, sub_states}, new_events: new_events ++ internal_new_events}
   end
 
   defp wrap_new_event({time, fun, arg}, observable) do
@@ -89,6 +94,14 @@ defmodule MarbleTesting do
                             time, observable, {r_notifs, sub_states})
   end
 
+  defp unsubscribe(time,
+                   %{__struct__: module} = observable,
+                   {_r_notifs, sub_states} = acc)
+  do
+    handle_observable_reply(module.unsubscribe(time, Map.get(sub_states, observable)),
+                            time, observable, acc)
+    # TODO: Delete this observable's state from sub_states.
+  end
 
   @doc ~S"""
   Converts a string containing a marble diagram of notifications into a sequence
@@ -305,5 +318,23 @@ defmodule MarbleTesting do
     raise ArgumentError,
           ~s"found a second #{type} point '#{char}' in a " <>
             "subscription marble diagram. There can only be one."
+  end
+
+  def subscriptions(observable) do
+    subscribed =
+      receive do
+        {:subscribed, time, ^observable} -> time
+      after
+        0 -> nil
+      end
+
+    unsubscribed =
+      receive do
+        {:unsubscribed, time, ^observable} -> time
+      after
+        0 -> nil
+      end
+
+    {subscribed, unsubscribed}
   end
 end

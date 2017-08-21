@@ -7,12 +7,10 @@ defmodule MarbleTestingTest do
   describe "cold/2" do
     source = cold      "-a-b-|", values: %{a: 1, b: 2}
     expected = marbles "-a-b-|", values: %{a: 1, b: 2}
-    # subs = sub_marbles "^----!"
+    subs = sub_marbles "^----!"
 
     assert observe(source) == expected
-    # assert subscriptions == %{source => subs}
-      # TODO: Look in process mailbox. Revise sub_marbles infrastructure
-      # to use assert_received appropriately.
+    assert subscriptions(source) == subs
   end
 
   describe "marbles/2" do
