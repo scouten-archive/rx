@@ -22,9 +22,23 @@ defmodule MarbleTesting do
   end
 
   @doc ~S"""
-  Runs a marble test.
+  Runs a marble test on a single Observable.
 
-  TODO: Write more docs.
+  Subscribes to the Observable and returns a list of the notifications generated
+  during that subscription.
+
+  Typically used with `marbles/2`, which converts a marble diagram into a similar
+  list of notifications. (In other words, use `marbles/2` to generate the expected
+  value and use this function to generate the actual value for an assertion test.)
+
+  # Example
+
+  ```
+  iex> source = MarbleTesting.cold "-a-b-|"
+  iex> observe(source)
+  [{10, :next, "a"}, {30, :next, "b"}, {50, :done}]
+  ```
+
   TODO: Change this so it runs core Observable type, not ColdObservable.
   """
   def observe(%__MODULE__.ColdObservable{} = observable) do
@@ -34,6 +48,7 @@ defmodule MarbleTesting do
     Enum.reverse(r_notifs)
   end
 
+  # TODO: Pull subscribe out into its own module.
   defp subscribe(time, %{__struct__: module} = observable, acc) do
     handle_observable_reply(module.subscribe(time, observable),
                             time, observable, acc)
@@ -335,6 +350,11 @@ defmodule MarbleTesting do
   This event takes a marble diagram (see `marbles/2`) and returns a
   special instance of Rx.Observable which will generate the events for a
   transform stage to process at the specified (virtual) times.
+
+  Typically used with `sub_marbles/1`, which converts a subscription marble diagram
+  into the same tuple format returned by this function. (In other words, use
+  `sub_marbles/1` to generate the expected value and use this function to generate
+  the actual value for an assertion test.)
 
   ## Examples
 
