@@ -17,7 +17,7 @@ defmodule MarbleTestingTest do
     test "raises if marble string has unsubscription marker (!)" do
       assert_raise ArgumentError,
         ~S/conventional marble diagrams cannot have the unsubscription marker "!"/,
-        fn -> MarbleTesting.marbles("---!---") end
+        fn -> marbles("---!---") end
     end
   end
 
@@ -26,20 +26,20 @@ defmodule MarbleTestingTest do
       assert_raise ArgumentError,
         ~S/found a second subscription point '^' in a subscription marble diagram. / <>
           "There can only be one.",
-        fn -> MarbleTesting.sub_marbles("---^---^--") end
+        fn -> sub_marbles("---^---^--") end
     end
 
     test "raises if multiple unsubscription points found" do
       assert_raise ArgumentError,
         ~S/found a second unsubscription point '!' in a subscription marble diagram. / <>
          "There can only be one.",
-        fn -> MarbleTesting.sub_marbles("---^-!-!--") end
+        fn -> sub_marbles("---^-!-!--") end
     end
 
     test "raises if invalid marbles found" do
       assert_raise ArgumentError,
         ~S/found an invalid character 'x' in subscription marble diagram./,
-        fn -> MarbleTesting.sub_marbles("---^--x--") end
+        fn -> sub_marbles("---^--x--") end
     end
   end
 end
