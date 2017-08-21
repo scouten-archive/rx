@@ -36,6 +36,10 @@ defmodule MarbleTestingTest do
   end
 
   describe "sub_marbles/1" do
+    test "treats spaces as idle frames" do
+      assert sub_marbles("- -^- -!-") == {30, 70}
+    end
+
     test "raises if multiple subscription points found" do
       assert_raise ArgumentError,
         ~S/found a second subscription point '^' in a subscription marble diagram. / <>
