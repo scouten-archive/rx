@@ -31,7 +31,7 @@ defmodule MarbleTestingTest do
     test "treats spaces as idle frames" do
       assert marbles("- - - -a- -b- -|") ==
         [
-          { 70, :next, "a"},
+          {70, :next, "a"},
           {110, :next, "b"},
           {150, :done}
         ]
