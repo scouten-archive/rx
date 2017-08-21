@@ -1,43 +1,172 @@
 defmodule MarbleTesting do
   @moduledoc false
 
-  defmacro __using__(_) do
-    quote do
-      import MarbleTesting, only: [cold: 1, cold: 2, run: 1]
-      @compile {:inline, marbles: 2}
-
-      defp marbles(marbles, options \\ []), do:
-        MarbleTesting.parse_marbles(marbles, options)
-
-      defp sub_marbles(marbles), do:
-        MarbleTesting.parse_marbles_as_subscriptions(marbles)
-    end
-  end
-
-  defmodule ColdObservable do
-    @moduledoc false
-    defstruct [:events]
-  end
+  alias VirtualTimeScheduler, as: VTS
 
   @doc ~S"""
   Creates a cold observable for use in marble testing.
 
-  This event takes a marble diagram (see `parse_marbles/2`) and returns a
+  This function takes a marble diagram (see `marbles/2`) and returns a
   special instance of Rx.Observable which will generate the events for a
   transform stage to process at the specified (virtual) times.
+
+  # TODO: Make it actually return Rx.Observable.
   """
   def cold(marbles, options \\ []) do
-    events = parse_marbles(marbles, options)
-    %Rx.Observable{reversed_stages: [%__MODULE__.ColdObservable{events: events}]}
+    if String.contains?(marbles, "^"), do:
+      raise ArgumentError, ~S/cold observable cannot have subscription offset "^"/
+    if String.contains?(marbles, "!"), do:
+      raise ArgumentError, ~S/cold observable cannot have unsubscription marker "!"/
+
+    events = marbles(marbles, options)
+    %__MODULE__.ColdObservable{events: events, log_target_pid: self()}
+      # TODO: Need to tie this back to core Observable type.
   end
 
   @doc ~S"""
-  Runs a marble test.
+  Runs a marble test on a single Observable.
 
-  TODO: Write more docs.
+  Subscribes to the Observable, runs it synchronously to completion using
+  VirtualTimeScheduler, then returns a list of the notifications generated
+  during the subscription.
+
+  Typically used with `marbles/2`, which converts a marble diagram into a similar
+  list of notifications. (In other words, use `marbles/2` to generate the expected
+  value and use this function to generate the actual value for an assertion test.)
+
+  # Example
+
+  ```
+  iex> source = MarbleTesting.cold "-a-b-|"
+  iex> observe(source)
+  [{10, :next, "a"}, {30, :next, "b"}, {50, :done}]
+  ```
+
+  TODO: Change this so it runs core Observable type, not ColdObservable.
   """
-  def run(%Rx.Observable{reversed_stages: _stages} = _observable) do
-    raise "not yet"
+  def observe(%__MODULE__.ColdObservable{} = observable) do
+    {r_notifs, _sub_states} = VTS.run(&subscribe/3, observable, {[], %{}})
+      # TODO: Build out a proper to_notifications "observer"
+      # for use in this context.
+    Enum.reverse(r_notifs)
+  end
+
+  # TODO: Pull subscribe out into its own module.
+  defp subscribe(time, %{__struct__: module} = observable, acc) do
+    handle_observable_reply(module.subscribe(time, observable),
+                            time, observable, acc)
+  end
+
+  defp handle_observable_reply(reply, time, observable, acc) do
+    acc
+    |> handle_observable_events(time, reply, observable)
+    |> handle_observable_new_events(observable)
+  end
+
+  defp handle_observable_events({r_notifs, sub_states} = _acc,
+                                _time, {:ok, sub_state, options},
+                                observable)
+  do
+    {r_notifs, Map.put(sub_states, observable, sub_state), options, []}
+  end
+
+  defp handle_observable_events({r_notifs, sub_states} = _acc,
+                                time, {:next, values, sub_state, options},
+                                observable)
+  do
+    new_notifs =
+      values
+      |> Enum.reverse()
+      |> Enum.map(&({time, :next, &1}))
+
+    {new_notifs ++ r_notifs, Map.put(sub_states, observable, sub_state), options, []}
+  end
+
+  defp handle_observable_events({r_notifs, sub_states} = _acc,
+                                time, {:done, sub_state, options},
+                                observable)
+  do
+    {[{time, :done} | r_notifs],
+     Map.put(sub_states, observable, sub_state),
+     options,
+     [{0, &unsubscribe/3, observable}]}
+  end
+
+  defp handle_observable_new_events({r_notifs, sub_states, options, internal_new_events},
+                                    observable)
+  do
+    new_events =
+      options
+      |> Keyword.get(:new_events, [])
+      |> Enum.map(&(wrap_new_event(&1, observable)))
+
+    {{r_notifs, sub_states}, new_events: new_events ++ internal_new_events}
+  end
+
+  defp wrap_new_event({time, fun, arg}, observable) do
+    {time, &invoke_observable_fn/3, {fun, observable, arg}}
+  end
+
+  defp invoke_observable_fn(time, {fun, observable, arg}, {r_notifs, sub_states}) do
+    handle_observable_reply(fun.(time, arg, Map.get(sub_states, observable)),
+                            time, observable, {r_notifs, sub_states})
+  end
+
+  defp unsubscribe(time,
+                   %{__struct__: module} = observable,
+                   {_r_notifs, sub_states} = acc)
+  do
+    {{r_notifs, new_sub_states}, options} =
+      handle_observable_reply(module.unsubscribe(time, Map.get(sub_states, observable)),
+                                                 time, observable, acc)
+
+    {{r_notifs, Map.delete(new_sub_states, observable)}, options}
+  end
+
+  @doc ~S"""
+  Returns a tuple with the time of subscription and unsubscription for the given
+  Observable.
+
+  Should be used after a test is run (typically with `observe/1`).
+
+  Searches the process mailbox for messages generated by ColdObservable to track
+  (un)subscription events. Note that this will not work with other Observable
+  types because they do not generate those events.
+
+  This event takes a marble diagram (see `marbles/2`) and returns a
+  special instance of Rx.Observable which will generate the events for a
+  transform stage to process at the specified (virtual) times.
+
+  Typically used with `sub_marbles/1`, which converts a subscription marble diagram
+  into the same tuple format returned by this function. (In other words, use
+  `sub_marbles/1` to generate the expected value and use this function to generate
+  the actual value for an assertion test.)
+
+  ## Examples
+
+  ```
+  iex> source = MarbleTesting.cold "-a-b-|"
+  iex> observe(source)  # Normally you would assert that this == expected.
+  iex> subscriptions(source)
+  {0, 50}
+  ```
+  """
+  def subscriptions(observable) do
+    subscribed =
+      receive do
+        {:subscribed, time, ^observable} -> time
+      after
+        0 -> nil
+      end
+
+    unsubscribed =
+      receive do
+        {:unsubscribed, time, ^observable} -> time
+      after
+        0 -> nil
+      end
+
+    {subscribed, unsubscribed}
   end
 
   @doc ~S"""
@@ -68,7 +197,7 @@ defmodule MarbleTesting do
   Simplest case (without options):
 
   ```
-  iex> MarbleTesting.parse_marbles("-------a---b---|")
+  iex> MarbleTesting.marbles("-------a---b---|")
   [
     { 70, :next, "a"},
     {110, :next, "b"},
@@ -79,8 +208,7 @@ defmodule MarbleTesting do
   Using `values` option to replace placeholder values with real values:
 
   ```
-  iex> MarbleTesting.parse_marbles("-------a---b---|",
-  ...>                                         values: %{a: "ABC", b: "BCD"})
+  iex> MarbleTesting.marbles("-------a---b---|", values: %{a: "ABC", b: "BCD"})
   [
     { 70, :next, "ABC"},
     {110, :next, "BCD"},
@@ -91,8 +219,7 @@ defmodule MarbleTesting do
   Trailing spaces permitted:
 
   ```
-  iex> MarbleTesting.parse_marbles("--a--b--|   ",
-  ...>                                         values: %{a: "A", b: "B"})
+  iex> MarbleTesting.marbles("--a--b--|   ", values: %{a: "A", b: "B"})
   [
     {20, :next, "A"},
     {50, :next, "B"},
@@ -103,8 +230,7 @@ defmodule MarbleTesting do
   Explicit subscription start point:
 
   ```
-  iex> MarbleTesting.parse_marbles("---^---a---b---|",
-  ...>                                         values: %{a: "A", b: "B"})
+  iex> MarbleTesting.marbles("---^---a---b---|", values: %{a: "A", b: "B"})
   [
     { 40, :next, "A"},
     { 80, :next, "B"},
@@ -115,9 +241,9 @@ defmodule MarbleTesting do
   Marble string that ends with an error:
 
   ```
-  iex> MarbleTesting.parse_marbles("-------a---b---#",
-  ...>                                         values: %{a: "A", b: "B"},
-  ...>                                         error: "omg error!")
+  iex> MarbleTesting.marbles("-------a---b---#",
+  ...>                       values: %{a: "A", b: "B"},
+  ...>                       error: "omg error!")
   [
     { 70, :next, "A"},
     {110, :next, "B"},
@@ -128,7 +254,7 @@ defmodule MarbleTesting do
   Grouped values occur at the same time:
 
   ```
-  iex> MarbleTesting.parse_marbles("---(abc)-e-")
+  iex> MarbleTesting.marbles("---(abc)-e-")
   [
     {30, :next, "a"},
     {30, :next, "b"},
@@ -137,7 +263,7 @@ defmodule MarbleTesting do
   ]
   ```
   """
-  def parse_marbles(marbles, options \\ []) do
+  def marbles(marbles, options \\ []) do
     if String.contains?(marbles, "!") do
       raise ArgumentError,
             ~S/conventional marble diagrams cannot have the unsubscription marker "!"/
@@ -188,7 +314,7 @@ defmodule MarbleTesting do
 
   @doc ~S"""
   Converts a string containing a marble diagram of subscription events into a
-  map with the time of each event.
+  tuple with the time of subscription and unsubscription.
 
   Note that there can be no more than one each of subscription and unsubscription
   events.
@@ -207,31 +333,33 @@ defmodule MarbleTesting do
   Simplest case:
 
   ```
-  iex> MarbleTesting.parse_marbles_as_subscriptions("---^---!-")
-  %{subscribed_frame: 30, unsubscribed_frame: 70}
+  iex> MarbleTesting.sub_marbles("---^---!-")
+  {30, 70}
   ```
 
   Subscribe only:
 
   ```
-  iex> MarbleTesting.parse_marbles_as_subscriptions("---^-")
-  %{subscribed_frame: 30, unsubscribed_frame: nil}
+  iex> MarbleTesting.sub_marbles("---^-")
+  {30, nil}
   ```
 
   Subscribe followed immediately by unsubscribe:
 
   ```
-  iex> MarbleTesting.parse_marbles_as_subscriptions("---(^!)-")
-  %{subscribed_frame: 30, unsubscribed_frame: 30}
+  iex> MarbleTesting.sub_marbles("---(^!)-")
+  {30, 30}
   ```
   """
-  def parse_marbles_as_subscriptions(marbles) do
-    acc = %{subscribed_frame: nil, unsubscribed_frame: nil, in_group?: false, time: 0}
+  def sub_marbles(marbles) do
+    seed = %{subscribed_frame: nil, unsubscribed_frame: nil, in_group?: false, time: 0}
 
-    marbles
-    |> String.codepoints()
-    |> Enum.reduce(acc, &parse_subscription_marble/2)
-    |> Map.drop([:in_group?, :time])
+    acc =
+      marbles
+      |> String.codepoints()
+      |> Enum.reduce(seed, &parse_subscription_marble/2)
+
+    {acc.subscribed_frame, acc.unsubscribed_frame}
   end
 
   defp parse_subscription_marble("-", acc), do: add_idle_marble(acc)
