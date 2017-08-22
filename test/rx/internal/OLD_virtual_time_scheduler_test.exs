@@ -1,7 +1,7 @@
-defmodule VirtualTimeSchedulerTest do
+defmodule OLD.VirtualTimeSchedulerTest do
   use ExUnit.Case, async: true
 
-  alias VirtualTimeScheduler, as: VTS
+  alias OLD.VirtualTimeScheduler, as: VTS
 
   test "can run a preconfigured sequence of events in order of addition" do
     invoke = fn(time, n, acc) ->

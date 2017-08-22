@@ -1,4 +1,4 @@
-defmodule VirtualTimeScheduler do
+defmodule OLD.VirtualTimeScheduler do
   @moduledoc false  # Only used in testing infrastructure.
 
   def run(fun, arg, acc) do

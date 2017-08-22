@@ -1,7 +1,7 @@
 defmodule MarbleTesting do
   @moduledoc false
 
-  alias VirtualTimeScheduler, as: VTS
+  alias OLD.VirtualTimeScheduler, as: VTS
 
   @doc ~S"""
   Creates a cold observable for use in marble testing.
@@ -27,7 +27,7 @@ defmodule MarbleTesting do
   Runs a marble test on a single Observable.
 
   Subscribes to the Observable, runs it synchronously to completion using
-  VirtualTimeScheduler, then returns a list of the notifications generated
+  OLD.VirtualTimeScheduler, then returns a list of the notifications generated
   during the subscription.
 
   Typically used with `marbles/2`, which converts a marble diagram into a similar
