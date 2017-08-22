@@ -36,6 +36,15 @@ defmodule VirtualTimeScheduler do
   do
     module = Map.get(modules, sid)
     sub_state = Map.get(sub_states, sid)
+    IO.puts """
+
+    run_task
+      task = #{inspect task}
+      sid = #{inspect sid}
+      module = #{inspect module}
+      sub_state = #{inspect sub_state}
+
+    """
     {:task, time, sid, module.handle_task(time, task, sub_state )}
   end
 

@@ -168,9 +168,49 @@ defmodule VirtualTimeSchedulerTest do
 
   # ---
 
-  # test "maintains distinction among distinct schedulable structs"
+  defmodule PongSchedulable do
+    use Rx.Schedulable
 
-  # test "passes correct time to init function for secondary object"
+    defstruct starting_count: 0, ping_ref: nil
 
-  # test "can pass messages from one schedulable struct to another"
+    def init(0, %__MODULE__{starting_count: starting_count, ping_ref: ping_ref}),
+      do: {:ok, ping_ref, new_tasks: [{20, {:send, starting_count}}]}
+
+    def handle_task(_time, {:send, n}, ping_ref) when n < -3, do: {:ok, ping_ref}
+    def handle_task(_time, {:send, n}, ping_ref), do:
+      {:ok, ping_ref, new_tasks: [{20, {:send, n - 1}}],
+                      send: [{0, ping_ref, {:ping, n}}]}
+
+    def terminate(_time, _reason, _ping_ref), do: :ok
+  end
+
+  defmodule PingSchedulable do
+    use Rx.Schedulable
+
+    defstruct starting_count: 0
+
+    def init(0, %__MODULE__{starting_count: starting_count}),
+      do: {:ok, [], new_tasks: [{10, {:append, starting_count}},
+                                {20, :start_pong}]}
+
+    def handle_task(_time, {:append, n}, acc) when n > 3, do: {:ok, acc}
+    def handle_task(time, {:append, n}, acc), do:
+      {:ok, [{time, n} | acc], new_tasks: [{20, {:append, n + 1}}]}
+
+    def handle_task(_time, :start_pong, acc), do:
+      {:ok, acc, start: [{10, %PongSchedulable{starting_count: -1}}]}
+
+    def handle_task(time, {:ping, value}, acc), do:
+      {:ok, [{time, value} | acc]}
+
+    def terminate(_time, _reason, acc), do: Enum.reverse(acc)
+  end
+
+  test "can have multiple schedulable structs at once" do
+    assert VTS.run(%PingSchedulable{starting_count: 42}) ==
+      [{10, 42}, {20, -1},
+       {30, 43}, {40, -2},
+       {50, 44}, {60, -3},
+       {70, 45}]
+  end
 end
