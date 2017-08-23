@@ -87,7 +87,8 @@ defmodule VirtualTimeScheduler do
     validate_schedulables(new_schedulables)
 
     Enum.reduce(new_schedulables, v, fn({time_delta, new_sid, schedulable}, acc) ->
-      schedule_init(acc, time + time_delta, new_sid, maybe_add_started_by(schedulable, sid))
+      schedule_init(acc, time + time_delta, new_sid,
+                    maybe_add_started_by(schedulable, sid))
     end)
   end
 
