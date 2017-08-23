@@ -176,7 +176,6 @@ defmodule VirtualTimeSchedulerTest do
     def init(20, %__MODULE__{starting_count: starting_count, started_by: ping_ref}),
       do: {:ok, ping_ref, new_tasks: [{0, {:send, starting_count}}]}
 
-    def handle_task(_time, {:send, n}, ping_ref) when n < -3, do: {:ok, ping_ref}
     def handle_task(_time, {:send, n}, ping_ref), do:
       {:ok, ping_ref, new_tasks: [{20, {:send, n - 1}}],
                       send: [{0, ping_ref, {:ping, n}}]}
@@ -194,14 +193,18 @@ defmodule VirtualTimeSchedulerTest do
 
     def init(0, %__MODULE__{starting_count: starting_count}),
       do: {:ok, [], new_tasks: [{10, {:append, starting_count}},
-                                {15, :start_pong}]}
+                                {15, :start_pong},
+                                {65, :stop_pong}]}
 
     def handle_task(_time, {:append, n}, acc) when n > 45, do: {:ok, acc}
     def handle_task(time, {:append, n}, acc), do:
       {:ok, [{time, n} | acc], new_tasks: [{20, {:append, n + 1}}]}
 
     def handle_task(_time, :start_pong, acc), do:
-      {:ok, acc, start: [{5, %PongSchedulable{starting_count: -1}}]}
+      {:ok, acc, start: [{5, :pong, %PongSchedulable{starting_count: -1}}]}
+
+    def handle_task(_time, :stop_pong, acc), do:
+      {:ok, acc, stop: [{:pong, :mumble}]}
 
     def handle_task(time, {:ping, value}, acc), do:
       {:ok, [{time, value} | acc]}
@@ -216,6 +219,6 @@ defmodule VirtualTimeSchedulerTest do
        {50, 44}, {60, -3},
        {70, 45}]
 
-    assert_received {:pong_terminated, :done}
+    assert_received {:pong_terminated, 65}
   end
 end
