@@ -18,8 +18,8 @@ defmodule MarbleTesting do
     if String.contains?(marbles, "!"), do:
       raise ArgumentError, ~S/cold observable cannot have unsubscription marker "!"/
 
-    events = marbles(marbles, options)
-    %__MODULE__.ColdObservable{events: events, log_target_pid: self()}
+    notifs = marbles(marbles, options)
+    %__MODULE__.ColdObservable{notifs: notifs, log_target_pid: self()}
       # TODO: Need to tie this back to core Observable type.
   end
 
@@ -27,7 +27,7 @@ defmodule MarbleTesting do
   Runs a marble test on a single Observable.
 
   Subscribes to the Observable, runs it synchronously to completion using
-  VirtualTimeScheduler, then returns a list of the notifications generated
+  OLD.VirtualTimeScheduler, then returns a list of the notifications generated
   during the subscription.
 
   Typically used with `marbles/2`, which converts a marble diagram into a similar
@@ -44,84 +44,8 @@ defmodule MarbleTesting do
 
   TODO: Change this so it runs core Observable type, not ColdObservable.
   """
-  def observe(%__MODULE__.ColdObservable{} = observable) do
-    {r_notifs, _sub_states} = VTS.run(&subscribe/3, observable, {[], %{}})
-      # TODO: Build out a proper to_notifications "observer"
-      # for use in this context.
-    Enum.reverse(r_notifs)
-  end
-
-  # TODO: Pull subscribe out into its own module.
-  defp subscribe(time, %{__struct__: module} = observable, acc) do
-    handle_observable_reply(module.subscribe(time, observable),
-                            time, observable, acc)
-  end
-
-  defp handle_observable_reply(reply, time, observable, acc) do
-    acc
-    |> handle_observable_events(time, reply, observable)
-    |> handle_observable_new_events(observable)
-  end
-
-  defp handle_observable_events({r_notifs, sub_states} = _acc,
-                                _time, {:ok, sub_state, options},
-                                observable)
-  do
-    {r_notifs, Map.put(sub_states, observable, sub_state), options, []}
-  end
-
-  defp handle_observable_events({r_notifs, sub_states} = _acc,
-                                time, {:next, values, sub_state, options},
-                                observable)
-  do
-    new_notifs =
-      values
-      |> Enum.reverse()
-      |> Enum.map(&({time, :next, &1}))
-
-    {new_notifs ++ r_notifs, Map.put(sub_states, observable, sub_state), options, []}
-  end
-
-  defp handle_observable_events({r_notifs, sub_states} = _acc,
-                                time, {:done, sub_state, options},
-                                observable)
-  do
-    {[{time, :done} | r_notifs],
-     Map.put(sub_states, observable, sub_state),
-     options,
-     [{0, &unsubscribe/3, observable}]}
-  end
-
-  defp handle_observable_new_events({r_notifs, sub_states, options, internal_new_events},
-                                    observable)
-  do
-    new_events =
-      options
-      |> Keyword.get(:new_events, [])
-      |> Enum.map(&(wrap_new_event(&1, observable)))
-
-    {{r_notifs, sub_states}, new_events: new_events ++ internal_new_events}
-  end
-
-  defp wrap_new_event({time, fun, arg}, observable) do
-    {time, &invoke_observable_fn/3, {fun, observable, arg}}
-  end
-
-  defp invoke_observable_fn(time, {fun, observable, arg}, {r_notifs, sub_states}) do
-    handle_observable_reply(fun.(time, arg, Map.get(sub_states, observable)),
-                            time, observable, {r_notifs, sub_states})
-  end
-
-  defp unsubscribe(time,
-                   %{__struct__: module} = observable,
-                   {_r_notifs, sub_states} = acc)
-  do
-    {{r_notifs, new_sub_states}, options} =
-      handle_observable_reply(module.unsubscribe(time, Map.get(sub_states, observable)),
-                                                 time, observable, acc)
-
-    {{r_notifs, Map.delete(new_sub_states, observable)}, options}
-  end
+  def observe(%__MODULE__.ColdObservable{} = observable), do:
+    VTS.run(%MarbleTesting.Observer{observable: observable})
 
   @doc ~S"""
   Returns a tuple with the time of subscription and unsubscription for the given

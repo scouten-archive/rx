@@ -1,22 +1,27 @@
 defmodule MarbleTesting.ColdObservable do
   @moduledoc false
-  # using Rx.Observable.Stage  # TODO: Build this.
-  defstruct [:events, :log_target_pid]
 
-  def subscribe(time, %__MODULE__{events: events} = obs) do
-    send(obs.log_target_pid, {:subscribed, time, obs})
-    state = %{original_observable: obs}
-    {:ok, state, new_events: Enum.map(events, &schedule_event/1)}
+  use Rx.Schedulable  # TODO: Move to Rx.Observable.Stage
+
+  defstruct [:notifs, :log_target_pid, :started_by]
+
+  def init(time, %__MODULE__{notifs: notifs} = obs) do
+    send(obs.log_target_pid, {:subscribed, time, Map.put(obs, :started_by, nil)})
+    {:ok, obs, new_tasks: Enum.map(notifs, &schedule_notif/1)}
   end
 
-  def unsubscribe(time, %{original_observable: obs} = state) do
-    send(obs.log_target_pid, {:unsubscribed, time, obs})
-    {:ok, state, []}
+  defp schedule_notif({time, :next, value}), do: {time, {:send_next_notif, value}}
+
+  defp schedule_notif({time, :done}), do: {time, :send_done_notif}
+
+  def handle_task(_time, {:send_next_notif, value}, %{started_by: observer} = state), do:
+    {:ok, state, send: [{0, observer, {:next, [value]}}]}
+
+  def handle_task(_time, :send_done_notif, %{started_by: observer} = state), do:
+    {:ok, state, send: [{0, observer, :done}]}
+
+  def terminate(time, _reason, %__MODULE__{log_target_pid: pid} = obs) do
+    send(pid, {:unsubscribed, time, Map.put(obs, :started_by, nil)})
+    :ok
   end
-
-  defp schedule_event({time, :next, value}), do: {time, &do_next_event/3, value}
-  defp schedule_event({time, :done}), do: {time, &do_done_event/3, nil}
-
-  defp do_next_event(_time, value, state), do: {:next, [value], state, []}
-  defp do_done_event(_time, nil, state), do: {:done, state, []}
 end
