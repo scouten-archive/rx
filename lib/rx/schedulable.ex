@@ -1,6 +1,6 @@
 defmodule Rx.Schedulable do
+  @moduledoc false  # TODO: Write documentation for this module.
   # Think of these as micro-tasks within an existing process.
-  # TODO: More documentation.
 
   defmacro __using__(_) do
     quote location: :keep do
