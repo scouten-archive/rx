@@ -171,17 +171,20 @@ defmodule VirtualTimeSchedulerTest do
   defmodule PongSchedulable do
     use Rx.Schedulable
 
-    defstruct starting_count: 0, ping_ref: nil
+    defstruct starting_count: 0, started_by: nil
 
-    def init(0, %__MODULE__{starting_count: starting_count, ping_ref: ping_ref}),
-      do: {:ok, ping_ref, new_tasks: [{20, {:send, starting_count}}]}
+    def init(20, %__MODULE__{starting_count: starting_count, started_by: ping_ref}),
+      do: {:ok, ping_ref, new_tasks: [{0, {:send, starting_count}}]}
 
     def handle_task(_time, {:send, n}, ping_ref) when n < -3, do: {:ok, ping_ref}
     def handle_task(_time, {:send, n}, ping_ref), do:
       {:ok, ping_ref, new_tasks: [{20, {:send, n - 1}}],
                       send: [{0, ping_ref, {:ping, n}}]}
 
-    def terminate(_time, _reason, _ping_ref), do: :ok
+    def terminate(time, _reason, _ping_ref) do
+      send(self(), {:pong_terminated, time})
+      :ok
+    end
   end
 
   defmodule PingSchedulable do
@@ -191,14 +194,14 @@ defmodule VirtualTimeSchedulerTest do
 
     def init(0, %__MODULE__{starting_count: starting_count}),
       do: {:ok, [], new_tasks: [{10, {:append, starting_count}},
-                                {20, :start_pong}]}
+                                {15, :start_pong}]}
 
-    def handle_task(_time, {:append, n}, acc) when n > 3, do: {:ok, acc}
+    def handle_task(_time, {:append, n}, acc) when n > 45, do: {:ok, acc}
     def handle_task(time, {:append, n}, acc), do:
       {:ok, [{time, n} | acc], new_tasks: [{20, {:append, n + 1}}]}
 
     def handle_task(_time, :start_pong, acc), do:
-      {:ok, acc, start: [{10, %PongSchedulable{starting_count: -1}}]}
+      {:ok, acc, start: [{5, %PongSchedulable{starting_count: -1}}]}
 
     def handle_task(time, {:ping, value}, acc), do:
       {:ok, [{time, value} | acc]}
@@ -212,5 +215,7 @@ defmodule VirtualTimeSchedulerTest do
        {30, 43}, {40, -2},
        {50, 44}, {60, -3},
        {70, 45}]
+
+    assert_received {:pong_terminated, :done}
   end
 end

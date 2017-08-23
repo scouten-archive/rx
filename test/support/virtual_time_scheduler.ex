@@ -11,7 +11,6 @@ defmodule VirtualTimeScheduler do
   def run(%{__struct__: _module} = first_schedulable) do
     %__MODULE__{}
     |> schedule_init(0, first_schedulable)
-    |> schedule_terminate(:done, 1, :normal)
     |> run_tasks()
   end
 
@@ -36,16 +35,7 @@ defmodule VirtualTimeScheduler do
   do
     module = Map.get(modules, sid)
     sub_state = Map.get(sub_states, sid)
-    IO.puts """
-
-    run_task
-      task = #{inspect task}
-      sid = #{inspect sid}
-      module = #{inspect module}
-      sub_state = #{inspect sub_state}
-
-    """
-    {:task, time, sid, module.handle_task(time, task, sub_state )}
+    {:task, time, sid, module.handle_task(time, task, sub_state)}
   end
 
   defp run_task(%__MODULE__{modules: modules, sub_states: sub_states},
@@ -75,7 +65,9 @@ defmodule VirtualTimeScheduler do
   defp handle_options({_callback, time, sid, {:ok, sub_state, options}}, v) do
     v
     |> put_sub_state(sid, sub_state)
+    |> start_new_schedulables(time, sid, Keyword.get(options, :start, []))
     |> add_tasks(time, sid, Keyword.get(options, :new_tasks, []))
+    |> send_messages(time, Keyword.get(options, :send, []))
   end
 
   defp put_sub_state(%__MODULE__{sub_states: sub_states} = v,
@@ -83,6 +75,30 @@ defmodule VirtualTimeScheduler do
   do
     %{v | sub_states: Map.put(sub_states, sid, sub_state)}
   end
+
+  defp start_new_schedulables(v, _time, _sid, []), do: v
+
+  defp start_new_schedulables(v, time, sid, new_schedulables) do
+    validate_schedulables(new_schedulables)
+
+    Enum.reduce(new_schedulables, v, fn({time_delta, schedulable}, acc) ->
+      schedule_init(acc, time + time_delta, maybe_add_started_by(schedulable, sid))
+    end)
+  end
+
+  defp validate_schedulables(schedulables) do
+    unless Enum.all?(schedulables, &validate_schedulable/1), do:
+      raise ArgumentError,
+        "invalid schedulables passed to VTS run callback\n#{inspect schedulables}"
+  end
+
+  defp validate_schedulable({time, %{__struct__: _module}})
+    when is_integer(time) and time >= 0, do: true
+  defp validate_schedulable(_), do: false
+
+  defp maybe_add_started_by(%{started_by: _placeholder} = s, sid), do:
+    %{s | started_by: sid}
+  defp maybe_add_started_by(s, _sid), do: s
 
   defp add_tasks(v, _time, _sid, []), do: v
 
@@ -97,20 +113,40 @@ defmodule VirtualTimeScheduler do
   defp validate_tasks(tasks) do
     unless Enum.all?(tasks, &validate_task/1), do:
       raise ArgumentError, "invalid task passed to VTS run callback\n#{inspect tasks}"
-
-    tasks
   end
 
   defp validate_task({time, _task}) when is_integer(time) and time >= 0, do: true
   defp validate_task(_), do: false
 
+  defp send_messages(v, _time, []), do: v
+
+  defp send_messages(v, time, messages) do
+    validate_messages(messages)
+
+    Enum.reduce(messages, v, fn({time_delta, target_sid, message}, acc) ->
+      add_task(acc, time + time_delta, target_sid, {:task, message})
+    end)
+  end
+
+  defp validate_messages(messages) do
+    unless Enum.all?(messages, &validate_message/1), do:
+      raise ArgumentError,
+            "invalid message passed to VTS run callback\n#{inspect messages}"
+  end
+
+  defp validate_message({time, _target_sid, _message})
+    when is_integer(time) and time >= 0, do: true
+  defp validate_message(_), do: false
+
   defp schedule_init(%__MODULE__{schedulable_seq: sseq, modules: modules} = v,
                      time_now,
                      %{__struct__: module} = schedulable)
   do
-    add_task(%{v | schedulable_seq: sseq + 1,
-                   modules: Map.put(modules, sseq + 1, module)},
+    v = add_task(%{v | schedulable_seq: sseq + 1,
+                       modules: Map.put(modules, sseq + 1, module)},
              time_now, sseq + 1, {:init, schedulable})
+
+    schedule_terminate(v, :done, sseq + 1, :normal)
   end
 
   defp schedule_terminate(%__MODULE__{} = v, time, sid, reason) do
