@@ -1,5 +1,5 @@
-defmodule Rx.Observable.ToNotificationsStage do
-  @moduledoc false  # internal, implements Rx.Observable.to_notifications
+defmodule Rx.Observable.ToNotifications do
+  @moduledoc false  # internal, implements Rx.Observable.to_notifications/1
 
   use Rx.Internal.Operator
 
