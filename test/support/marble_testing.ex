@@ -44,7 +44,7 @@ defmodule MarbleTesting do
 
   TODO: Change this so it runs core Observable type, not ColdObservable.
   """
-  def observe(%__MODULE__.ColdObservable{} = observable), do:
+  def observe(%{} = observable), do:
     VTS.run(%MarbleTesting.Observer{observable: observable})
 
   @doc ~S"""
