@@ -20,7 +20,7 @@ defmodule Rx.Observable do
   TODO: Rewrite to reflect shift away from GenServer.
   """
 
-  # defstruct reversed_stages: []  # TODO: What is new struct?
+  import Rx.Internal.ValidObservable
 
   # @doc ~S"""
   # Creates an observable from the given function.
@@ -121,7 +121,7 @@ defmodule Rx.Observable do
     # [{:next, "Hello"}, {:next, "World"}, {:error, %RuntimeError{message: "foo"}}]
   """
   def to_notifications(observable), do:
-    %Rx.Observable.ToNotificationsStage{source: observable}
+    %Rx.Observable.ToNotificationsStage{source: enforce(observable)}
 
   # def start(%__MODULE__{reversed_stages: reversed_stages} = _observable) do
   #   start_stages(reversed_stages)

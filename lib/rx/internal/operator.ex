@@ -3,6 +3,8 @@ defmodule Rx.Internal.Operator do
 
   use Rx.Schedulable
 
+  import Rx.Internal.ValidObservable
+
   @callback subscribe(time :: non_neg_integer, stage :: struct) ::
     {:ok, state} |
     {:ok, state, options :: keyword} when state: any
@@ -32,9 +34,10 @@ defmodule Rx.Internal.Operator do
                         state :: term) :: :ok
 
   def init(time, %{__struct__: module,
-                   source: source,
+                   source: source_observable,
                    started_by: observer} = stage)
   do
+    enforce(source_observable)
     source_ref = make_ref()
     {:ok, mod_state} = module.subscribe(time, stage)
 
@@ -43,7 +46,7 @@ defmodule Rx.Internal.Operator do
               mod_state: mod_state,
               observer: observer}
 
-    {:ok, state, start: [{0, source_ref, source}]}
+    {:ok, state, start: [{0, source_ref, source_observable}]}
   end
 
   def init(_time, %{__struct__: _module} = stage) do
@@ -110,6 +113,8 @@ defmodule Rx.Internal.Operator do
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour Rx.Internal.Operator
+
+      use Rx.Internal.ValidObservable
 
       def init(time, stage), do:
         Rx.Internal.Operator.init(time, stage)
