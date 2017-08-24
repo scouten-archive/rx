@@ -1,4 +1,4 @@
-defmodule Rx.Observable.ThrowStage do
+defmodule OLD.Rx.Observable.ThrowStage do
   @moduledoc false  # internal
 
   use GenStage

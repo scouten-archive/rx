@@ -1,8 +1,8 @@
-defmodule Rx.Observable.ToNotificationsStage do
+defmodule OLD.Rx.Observable.ToNotificationsStage do
   @moduledoc false  # internal, implements Rx.Observable.to_notifications
 
-  use Rx.Internal.TransformStage
-  alias Rx.Internal.TransformStage
+  use OLD.Rx.Internal.TransformStage
+  alias OLD.Rx.Internal.TransformStage
 
   defstruct placeholder: nil
 

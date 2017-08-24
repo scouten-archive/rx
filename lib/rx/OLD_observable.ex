@@ -1,4 +1,4 @@
-defmodule Rx.Observable do
+defmodule OLD.Rx.Observable do
   @moduledoc ~S"""
   An Observable is a recipe for expressing, transforming, and processing one or
   more asynchronous data streams.
@@ -33,7 +33,7 @@ defmodule Rx.Observable do
   the demand requests.
 
   ## Examples
-    iex> Rx.Observable.create(fn next ->
+    iex> OLD.Rx.Observable.create(fn next ->
     ...>   next.("Hello")
     ...>   next.("World")
     ...> end)
@@ -41,24 +41,24 @@ defmodule Rx.Observable do
     ["Hello", "World"]
   """
   def create(fun) when is_function(fun, 1) do
-    %__MODULE__{reversed_stages: [%Rx.Observable.CreateStage{fun: fun}]}
+    %__MODULE__{reversed_stages: [%OLD.Rx.Observable.CreateStage{fun: fun}]}
   end
 
   @doc ~S"""
   Creates an observable that emits no items and immediately terminates normally.
 
   ## Examples
-    iex> Rx.Observable.empty()
+    iex> OLD.Rx.Observable.empty()
     ...> |> Enum.to_list()
     []
 
-    # iex> Rx.Observable.empty()
-    # ...> |> Rx.Observable.to_notifications()
+    # iex> OLD.Rx.Observable.empty()
+    # ...> |> OLD.Rx.Observable.to_notifications()
     # ...> |> Enum.to_list()
     # [:done]
   """
   def empty, do:
-    %__MODULE__{reversed_stages: [%Rx.Observable.EmptyStage{}]}
+    %__MODULE__{reversed_stages: [%OLD.Rx.Observable.EmptyStage{}]}
 
   @doc ~S"""
   Creates an observable that emits no items and terminates with an error.
@@ -69,13 +69,13 @@ defmodule Rx.Observable do
   The error value should be a normal value, not an exception struct.
 
   ## Examples
-    iex> Rx.Observable.throw("testing error")
-    ...> |> Rx.Observable.to_notifications()
+    iex> OLD.Rx.Observable.throw("testing error")
+    ...> |> OLD.Rx.Observable.to_notifications()
     ...> |> Enum.to_list()
     [{:error, "testing error"}]
   """
   def throw(err) do
-    %__MODULE__{reversed_stages: [%Rx.Observable.ThrowStage{message: err}]}
+    %__MODULE__{reversed_stages: [%OLD.Rx.Observable.ThrowStage{message: err}]}
   end
 
   @doc ~S"""
@@ -88,34 +88,34 @@ defmodule Rx.Observable do
   * normal termination -> `:done`
 
   ## Examples
-    iex> Rx.Observable.create(fn next ->
+    iex> OLD.Rx.Observable.create(fn next ->
     ...>   next.("Hello")
     ...>   next.("World")
     ...> end)
-    ...> |> Rx.Observable.to_notifications()
+    ...> |> OLD.Rx.Observable.to_notifications()
     ...> |> Enum.to_list()
     [{:next, "Hello"}, {:next, "World"}, :done]
 
-    iex> Rx.Observable.create(fn next ->
+    iex> OLD.Rx.Observable.create(fn next ->
     ...>   next.("Hello")
     ...>   next.("World")
     ...>   raise Rx.Error, message: "foo"
     ...> end)
-    ...> |> Rx.Observable.to_notifications()
+    ...> |> OLD.Rx.Observable.to_notifications()
     ...> |> Enum.to_list()
     [{:next, "Hello"}, {:next, "World"}, {:error, "foo"}]
 
-    iex> Rx.Observable.create(fn next ->
+    iex> OLD.Rx.Observable.create(fn next ->
     ...>   next.("Hello")
     ...>   next.("World")
     ...>   raise "foo"  # raises RuntimeError instead
     ...> end)
-    ...> |> Rx.Observable.to_notifications()
+    ...> |> OLD.Rx.Observable.to_notifications()
     ...> |> Enum.to_list()
     [{:next, "Hello"}, {:next, "World"}, {:error, %RuntimeError{message: "foo"}}]
   """
   def to_notifications(observable) do
-    add_stage(observable, %Rx.Observable.ToNotificationsStage{}, :to_notifications)
+    add_stage(observable, %OLD.Rx.Observable.ToNotificationsStage{}, :to_notifications)
   end
 
   def start(%__MODULE__{reversed_stages: reversed_stages} = _observable) do
@@ -163,7 +163,7 @@ defmodule Rx.Observable do
 
   defimpl Enumerable do
     def reduce(observable, acc, fun) do
-      case Rx.Observable.start(observable) do
+      case OLD.Rx.Observable.start(observable) do
         {:ok, pid} ->
           GenStage.stream([{pid, cancel: :transient}]).(acc, fun)
         {:error, reason} ->

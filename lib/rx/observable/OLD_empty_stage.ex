@@ -1,4 +1,4 @@
-defmodule Rx.Observable.EmptyStage do
+defmodule OLD.Rx.Observable.EmptyStage do
   @moduledoc false  # internal
 
   use GenStage

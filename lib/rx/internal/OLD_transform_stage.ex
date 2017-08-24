@@ -1,4 +1,4 @@
-defmodule Rx.Internal.TransformStage do
+defmodule OLD.Rx.Internal.TransformStage do
   @moduledoc ~S"""
   This module should be used to implement Rx stages that transform existing Observables.
 
@@ -69,7 +69,7 @@ defmodule Rx.Internal.TransformStage do
 
     defp init_transform(mod, opts, state) do
       {:producer_consumer,
-       %Rx.Internal.TransformStage{mod: mod,
+       %OLD.Rx.Internal.TransformStage{mod: mod,
                                    state: state,
                                    producer: nil},
        opts}
@@ -82,7 +82,7 @@ defmodule Rx.Internal.TransformStage do
     {:automatic, state} # ignore
   def handle_subscribe(type, _opts, sub, state) do
     :error_logger.info_msg("""
-    Rx.Internal.TransformStage is stopping after invalid subscription request
+    OLD.Rx.Internal.TransformStage is stopping after invalid subscription request
       type = #{inspect type}
       subscription = #{inspect sub}
       state = #{inspect state}
@@ -139,7 +139,7 @@ defmodule Rx.Internal.TransformStage do
   end
   defp handle_event_reply(other, fn_name, state) do
     :error_logger.info_msg("""
-    Rx.Internal.TransformStage is stopping after invalid reply
+    OLD.Rx.Internal.TransformStage is stopping after invalid reply
     from #{inspect state.mod}.#{inspect fn_name}
 
       reply = #{inspect other}
@@ -160,7 +160,7 @@ defmodule Rx.Internal.TransformStage do
   @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
-      @behaviour Rx.Internal.TransformStage
+      @behaviour OLD.Rx.Internal.TransformStage
 
       @doc false
       def terminate(_reason, _state) do
