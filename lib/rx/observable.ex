@@ -36,7 +36,7 @@ defmodule Rx.Observable do
   def from_enumerable(e), do: %Rx.Observable.FromEnumerable{source: e}
 
   # @doc ~S"""
-  # Creates an observable from the given function.
+  # Creates an Observable from the given function.
   #
   # The function takes a single parameter (`next`) which is itself a function that
   # may be called to produce values. If the function exits via an error, the Observable
@@ -61,7 +61,7 @@ defmodule Rx.Observable do
   # end
 
   @doc ~S"""
-  Creates an observable that emits no items and immediately terminates normally.
+  Creates an Observable that emits no items and immediately terminates normally.
 
   ## Examples
     iex> Rx.Observable.empty()
@@ -76,7 +76,7 @@ defmodule Rx.Observable do
   def empty, do: %Rx.Observable.Empty{}
 
   @doc ~S"""
-  Creates an observable that emits no items and terminates with an error.
+  Creates an Observable that emits no items and terminates with an error.
 
   The function takes a single parameter which is the error to raise. This error
   is thrown immediately upon subscription.
