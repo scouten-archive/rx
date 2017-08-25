@@ -22,25 +22,12 @@ defmodule Rx.ObservableTest do
     end
   end
 
-  # @empty_observable %OLD.Rx.Observable{} # not a supported use case!
-  #
-  # describe "add_stage/3 (internal)" do
-  #   test "won't add stage to otherwise empty Observable" do
-  #     assert_raise RuntimeError, fn ->
-  #       OLD.Rx.Observable.to_notifications(@empty_observable)
-  #     end
-  #   end
-  #
-  #   test "won't add stage to a non-Observable" do
-  #     assert_raise RuntimeError, fn ->
-  #       OLD.Rx.Observable.to_notifications("not an Observable")
-  #     end
-  #   end
-  # end
-  #
-  # @crash_observable %OLD.Rx.Observable{reversed_stages: [%__MODULE__.CrashStage{}]}
-  #
   # describe "to_list/1 (via Enumerable)" do
+  #   test "converts the :next notifications from an Observable to a list" do
+  #     source = cold "-a-b-c-|"
+  #     assert Enum.to_list(source) == ["a", "b", "c"]
+  #   end
+  #
   #   test "crashes if source stream crashes on construction" do
   #     capture_log(fn ->
   #       assert {{%RuntimeError{message: "test failure in init fn"}, _}, _} =
