@@ -23,6 +23,13 @@ defmodule Rx.Observable do
 
   import Rx.Internal.ValidObservable
 
+  @typedoc ~S"""
+  Shared type definition for Observable.
+
+  See `Rx.Internal.ValidObservable` for how this is enforced at runtime.
+  """
+  @opaque t
+
   @doc ~S"""
   Creates an Observable from the given Enumerable.
 
@@ -34,6 +41,7 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     ["Hello", "World"]
   """
+  @spec from_enumerable(e :: Enumerable.t)
   def from_enumerable(e), do: %Rx.Observable.FromEnumerable{source: e}
 
   @doc ~S"""
@@ -52,6 +60,9 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     []
   """
+  @spec range(integer, non_neg_integer) :: t
+  def range(start, 0)
+
   def range(start, 0) when is_integer(start), do:
     %Rx.Observable.Empty{}
 
@@ -78,6 +89,7 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     ["Hello", "World"]
   """
+  @spec create(fun :: fun) :: t
   def create(fun) when is_function(fun, 1), do: %Rx.Observable.Create{fun: fun}
 
   @doc ~S"""
@@ -93,6 +105,7 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     [:done]
   """
+  @spec empty() :: t
   def empty, do: %Rx.Observable.Empty{}
 
   @doc ~S"""
@@ -109,6 +122,7 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     [{:error, "testing error"}]
   """
+  @spec throw(error :: any) :: t
   def throw(error), do: %Rx.Observable.Throw{error: error}
 
   @doc ~S"""
@@ -147,6 +161,7 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     [{:next, "Hello"}, {:next, "World"}, {:error, %RuntimeError{message: "foo"}}]
   """
-  def to_notifications(observable), do:
-    %Rx.Observable.ToNotifications{source: enforce(observable)}
+  @spec to_notifications(source :: t) :: t
+  def to_notifications(source), do:
+    %Rx.Observable.ToNotifications{source: enforce(source)}
 end
