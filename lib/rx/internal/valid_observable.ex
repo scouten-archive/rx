@@ -13,6 +13,14 @@ defmodule Rx.Internal.ValidObservable do
       defimpl Rx.Internal.ObservableImplementation do
         def is_observable(_), do: true
       end
+
+      defimpl Enumerable do
+        def reduce(observable, acc, fun), do:
+          Rx.Internal.Enumerable.reduce(observable, acc, fun)
+
+        def count(_observable), do: {:error, __MODULE__}
+        def member?(_observable, _value), do: {:error, __MODULE__}
+      end
     end
   end
 

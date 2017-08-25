@@ -3,9 +3,7 @@ defmodule Rx.ObservableTest do
 
   import MarbleTesting
 
-  alias Rx.Observable, as: Rx
-
-  # doctest Rx.Observable  # TODO: Restore this.
+  doctest Rx.Observable
 
   # import ExUnit.CaptureLog
 
@@ -17,22 +15,22 @@ defmodule Rx.ObservableTest do
                                                 c: :done}
       subs = sub_marbles "^----!"
 
-      assert observe(source |> Rx.to_notifications()) == expected
+      assert observe(source |> Rx.Observable.to_notifications()) == expected
       assert subscriptions(source) == subs
     end
   end
 
-  # describe "to_list/1 (via Enumerable)" do
-  #   test "converts the :next notifications from an Observable to a list" do
-  #     source = cold "-a-b-c-|"
-  #     assert Enum.to_list(source) == ["a", "b", "c"]
-  #   end
-  #
-  #   test "crashes if source stream crashes on construction" do
-  #     capture_log(fn ->
-  #       assert {{%RuntimeError{message: "test failure in init fn"}, _}, _} =
-  #         catch_exit(Enum.to_list(@crash_observable))
-  #     end)
-  #   end
-  # end
+  describe "to_list/1 (via Enumerable)" do
+    test "converts the :next notifications from an Observable to a list" do
+      source = cold "-a-b-c-|"
+      assert Enum.to_list(source) == ["a", "b", "c"]
+    end
+
+    # test "crashes if source stream crashes on construction" do
+    #   capture_log(fn ->
+    #     assert {{%RuntimeError{message: "test failure in init fn"}, _}, _} =
+    #       catch_exit(Enum.to_list(@crash_observable))
+    #   end)
+    # end
+  end
 end

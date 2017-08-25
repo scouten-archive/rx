@@ -22,6 +22,20 @@ defmodule Rx.Observable do
 
   import Rx.Internal.ValidObservable
 
+  @doc ~S"""
+  Creates an Observable from the given Enumerable.
+
+  ## Examples
+
+  (Yes, this is an absurd example.)
+
+    iex> Rx.Observable.from_enumerable(["Hello", "World"])
+    ...> |> Enum.to_list()
+    ["Hello", "World"]
+  """
+  def from_enumerable(e), do:
+    %Rx.Observable.FromEnumerable{source: e}
+
   # @doc ~S"""
   # Creates an observable from the given function.
   #
@@ -122,23 +136,4 @@ defmodule Rx.Observable do
   """
   def to_notifications(observable), do:
     %Rx.Observable.ToNotifications{source: enforce(observable)}
-  #
-  # defimpl Enumerable do
-  #   def reduce(observable, acc, fun) do
-  #     case Rx.Observable.start(observable) do
-  #       {:ok, pid} ->
-  #         GenStage.stream([{pid, cancel: :transient}]).(acc, fun)
-  #       {:error, reason} ->
-  #         exit({reason, {__MODULE__, :reduce, [observable, acc, fun]}})
-  #     end
-  #   end
-  #
-  #   def count(_observable) do
-  #     {:error, __MODULE__}
-  #   end
-  #
-  #   def member?(_observable, _value) do
-  #     {:error, __MODULE__}
-  #   end
-  # end
 end
