@@ -18,8 +18,8 @@
 
         {Credo.Check.Design.AliasUsage, priority: :low},
         {Credo.Check.Design.DuplicatedCode, excluded_macros: []},
-        {Credo.Check.Design.TagTODO},
-        {Credo.Check.Design.TagFIXME},
+        {Credo.Check.Design.TagTODO, false},  # covered elsewhere by Ebert
+        {Credo.Check.Design.TagFIXME, false}, # covered elsewhere by Ebert
 
         {Credo.Check.Readability.FunctionNames},
         {Credo.Check.Readability.LargeNumbers},
