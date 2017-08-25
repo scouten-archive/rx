@@ -11,6 +11,4 @@ defmodule Rx.Observable.Throw do
 
   def handle_task(_time, {:send_error_notif, error}, observer), do:
     {:ok, observer, send: [{0, observer, {:error, error}}]}
-
-  def terminate(_time, _reason, _state), do: :ok
 end

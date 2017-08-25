@@ -18,6 +18,4 @@ defmodule Rx.Observable.FromEnumerable do
 
   def handle_task(_time, :send_done_notif, observer), do:
     {:ok, observer, send: [{0, observer, :done}]}
-
-  def terminate(_time, _reason, _state), do: :ok
 end
