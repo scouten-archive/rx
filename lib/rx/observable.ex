@@ -35,30 +35,26 @@ defmodule Rx.Observable do
   """
   def from_enumerable(e), do: %Rx.Observable.FromEnumerable{source: e}
 
-  # @doc ~S"""
-  # Creates an Observable from the given function.
-  #
-  # The function takes a single parameter (`next`) which is itself a function that
-  # may be called to produce values. If the function exits via an error, the Observable
-  # terminates with the same error after producing any values seen up to that point.
-  # If the function exits normally, the Observable terminates with "done" state.
-  #
-  # This approach should be used for demonstration and lightweight purposes mostly
-  # since it abuses the GenServer interface by inverting control and disrespecting
-  # the demand requests.
-  #
-  # ## Examples
-  #   iex> Rx.Observable.create(fn next ->
-  #   ...>   next.("Hello")
-  #   ...>   next.("World")
-  #   ...> end)
-  #   ...> |> Enum.to_list()
-  #   ["Hello", "World"]
-  # """
-  # TODO: Reimplement.
-  # def create(fun) when is_function(fun, 1) do
-  #   %__MODULE__{reversed_stages: [%Rx.Observable.CreateStage{fun: fun}]}
-  # end
+  @doc ~S"""
+  Creates an Observable from the given function.
+
+  The function takes a single parameter (`next`) which is itself a function that
+  may be called to produce values. If the function exits via an error, the Observable
+  terminates with the same error after producing any values seen up to that point.
+  If the function exits normally, the Observable terminates with "done" state.
+
+  Note that the function is executed in an independent process spawned when the
+  Observable receives a subscription.
+
+  ## Examples
+    iex> Rx.Observable.create(fn next ->
+    ...>   next.("Hello")
+    ...>   next.("World")
+    ...> end)
+    ...> |> Enum.to_list()
+    ["Hello", "World"]
+  """
+  def create(fun) when is_function(fun, 1), do: %Rx.Observable.Create{fun: fun}
 
   @doc ~S"""
   Creates an Observable that emits no items and immediately terminates normally.
@@ -101,32 +97,31 @@ defmodule Rx.Observable do
   * normal termination -> `:done`
 
   ## Examples
-    # TODO: Reimplement.
-    # iex> Rx.Observable.create(fn next ->
-    # ...>   next.("Hello")
-    # ...>   next.("World")
-    # ...> end)
-    # ...> |> Rx.Observable.to_notifications()
-    # ...> |> Enum.to_list()
-    # [{:next, "Hello"}, {:next, "World"}, :done]
+    iex> Rx.Observable.create(fn next ->
+    ...>   next.("Hello")
+    ...>   next.("World")
+    ...> end)
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [{:next, "Hello"}, {:next, "World"}, :done]
 
-    # iex> Rx.Observable.create(fn next ->
-    # ...>   next.("Hello")
-    # ...>   next.("World")
-    # ...>   raise Rx.Error, message: "foo"
-    # ...> end)
-    # ...> |> Rx.Observable.to_notifications()
-    # ...> |> Enum.to_list()
-    # [{:next, "Hello"}, {:next, "World"}, {:error, "foo"}]
+    iex> Rx.Observable.create(fn next ->
+    ...>   next.("Hello")
+    ...>   next.("World")
+    ...>   raise Rx.Error, message: "foo"
+    ...> end)
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [{:next, "Hello"}, {:next, "World"}, {:error, "foo"}]
 
-    # iex> Rx.Observable.create(fn next ->
-    # ...>   next.("Hello")
-    # ...>   next.("World")
-    # ...>   raise "foo"  # raises RuntimeError instead
-    # ...> end)
-    # ...> |> Rx.Observable.to_notifications()
-    # ...> |> Enum.to_list()
-    # [{:next, "Hello"}, {:next, "World"}, {:error, %RuntimeError{message: "foo"}}]
+    iex> Rx.Observable.create(fn next ->
+    ...>   next.("Hello")
+    ...>   next.("World")
+    ...>   raise "foo"  # raises RuntimeError instead
+    ...> end)
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [{:next, "Hello"}, {:next, "World"}, {:error, %RuntimeError{message: "foo"}}]
   """
   def to_notifications(observable), do:
     %Rx.Observable.ToNotifications{source: enforce(observable)}
