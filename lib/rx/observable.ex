@@ -14,10 +14,11 @@ defmodule Rx.Observable do
   Unlike `Stream`, an Observable may be implemented by orchestrating one or more
   Elixir/OTP processes, depending on the structure of the recipe. A user of
   RxElixir need not dive deeply into this implmentation detail, except, perhaps
-  to think of RxElixir as a factory for `GenServer` processes which work together
+  to think of RxElixir as a factory for `GenServer`-like processes which work together
   to implement the desired computation.
 
-  TODO: Rewrite to reflect shift away from GenServer.
+  Note, however, that Observables do not run in their own processes unless explicitly
+  configured to do so. (TODO: How? Not yet possible.)
   """
 
   import Rx.Internal.ValidObservable
