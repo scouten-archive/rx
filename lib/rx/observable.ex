@@ -37,6 +37,29 @@ defmodule Rx.Observable do
   def from_enumerable(e), do: %Rx.Observable.FromEnumerable{source: e}
 
   @doc ~S"""
+  Creates an Observable that emits a sequence of numbers within a specified range.
+
+  ## Examples
+    iex> Rx.Observable.range(1, 4)
+    ...> |> Enum.to_list()
+    [1, 2, 3, 4]
+
+    iex> Rx.Observable.range(6, 4)
+    ...> |> Enum.to_list()
+    [6, 7, 8, 9]
+
+    iex> Rx.Observable.range(1, 0)
+    ...> |> Enum.to_list()
+    []
+  """
+  def range(start, 0) when is_integer(start), do:
+    %Rx.Observable.Empty{}
+
+  def range(start, count)
+  when is_integer(start) and is_integer(count) and count > 0, do:
+    %Rx.Observable.FromEnumerable{source: start..(start + count - 1)}
+
+  @doc ~S"""
   Creates an Observable from the given function.
 
   The function takes a single parameter (`next`) which is itself a function that

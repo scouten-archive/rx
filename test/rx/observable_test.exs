@@ -5,7 +5,22 @@ defmodule Rx.ObservableTest do
 
   doctest Rx.Observable
 
-  # import ExUnit.CaptureLog
+  describe "range/2" do
+    test "rejects non-integer start value" do
+      assert_raise FunctionClauseError,
+        fn -> Rx.Observable.range(3.14, 0) end
+    end
+
+    test "rejects non-integer count" do
+      assert_raise FunctionClauseError,
+        fn -> Rx.Observable.range(1, 1.87) end
+    end
+
+    test "rejects negative count" do
+      assert_raise FunctionClauseError,
+        fn -> Rx.Observable.range(1, -1) end
+    end
+  end
 
   describe "to_notifications/1" do
     test "converts notifications into tuples" do
