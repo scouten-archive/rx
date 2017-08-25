@@ -32,6 +32,7 @@
         {Credo.Check.Readability.PredicateFunctionNames},
         {Credo.Check.Readability.PreferImplicitTry},
         {Credo.Check.Readability.RedundantBlankLines},
+        {Credo.Check.Readability.Specs},
         {Credo.Check.Readability.StringSigils},
         {Credo.Check.Readability.TrailingBlankLine},
         {Credo.Check.Readability.TrailingWhiteSpace},
@@ -39,7 +40,7 @@
         {Credo.Check.Readability.Semicolons},
         {Credo.Check.Readability.SpaceAfterCommas},
 
-        {Credo.Check.Refactor.ABCSize},  # maybe?
+        {Credo.Check.Refactor.ABCSize},
         {Credo.Check.Refactor.DoubleBooleanNegation},
         {Credo.Check.Refactor.CondStatements},
         {Credo.Check.Refactor.CyclomaticComplexity},
