@@ -3,14 +3,14 @@ defmodule MarbleTesting do
 
   alias VirtualTimeScheduler, as: VTS
 
+  import Rx.Internal.ValidObservable
+
   @doc ~S"""
   Creates a cold observable for use in marble testing.
 
   This function takes a marble diagram (see `marbles/2`) and returns a
   special instance of Rx.Observable which will generate the events for a
   transform stage to process at the specified (virtual) times.
-
-  # TODO: Make it actually return Rx.Observable.
   """
   def cold(marbles, options \\ []) do
     if String.contains?(marbles, "^"), do:
@@ -20,7 +20,6 @@ defmodule MarbleTesting do
 
     notifs = marbles(marbles, options)
     %__MODULE__.ColdObservable{notifs: notifs, log_target_pid: self()}
-      # TODO: Need to tie this back to core Observable type.
   end
 
   @doc ~S"""
@@ -41,11 +40,9 @@ defmodule MarbleTesting do
   iex> observe(source)
   [{10, :next, "a"}, {30, :next, "b"}, {50, :done}]
   ```
-
-  TODO: Change this so it runs core Observable type, not ColdObservable.
   """
-  def observe(%__MODULE__.ColdObservable{} = observable), do:
-    VTS.run(%MarbleTesting.Observer{observable: observable})
+  def observe(observable), do:
+    VTS.run(%MarbleTesting.Observer{observable: enforce(observable)})
 
   @doc ~S"""
   Returns a tuple with the time of subscription and unsubscription for the given

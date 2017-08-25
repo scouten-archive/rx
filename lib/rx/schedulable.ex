@@ -5,6 +5,10 @@ defmodule Rx.Schedulable do
   defmacro __using__(_) do
     quote location: :keep do
       @behaviour Rx.Schedulable
+
+      def terminate(_time, _reason, _state), do: :ok
+
+      defoverridable [terminate: 3]
     end
   end
 

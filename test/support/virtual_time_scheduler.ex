@@ -173,9 +173,8 @@ defmodule VirtualTimeScheduler do
     schedule_terminate(v, :done, sid, :normal)
   end
 
-  defp schedule_terminate(%__MODULE__{} = v, time, sid, reason) do
+  defp schedule_terminate(%__MODULE__{} = v, time, sid, reason), do:
     add_task(v, time, sid, {:terminate, reason})
-  end
 
   defp add_task(%__MODULE__{pending_tasks: old_tasks, task_seq: seq} = v,
                 time, sid, task)

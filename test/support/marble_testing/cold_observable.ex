@@ -1,7 +1,8 @@
 defmodule MarbleTesting.ColdObservable do
   @moduledoc false
 
-  use Rx.Schedulable  # TODO: Move to Rx.Observable.Stage
+  use Rx.Internal.ValidObservable
+  use Rx.Schedulable
 
   defstruct [:notifs, :log_target_pid, :started_by]
 

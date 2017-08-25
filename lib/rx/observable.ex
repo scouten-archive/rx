@@ -14,23 +14,38 @@ defmodule Rx.Observable do
   Unlike `Stream`, an Observable may be implemented by orchestrating one or more
   Elixir/OTP processes, depending on the structure of the recipe. A user of
   RxElixir need not dive deeply into this implmentation detail, except, perhaps
-  to think of RxElixir as a factory for `GenServer` processes which work together
+  to think of RxElixir as a factory for `GenServer`-like processes which work together
   to implement the desired computation.
+
+  Note, however, that Observables do not run in their own processes unless explicitly
+  configured to do so. (TODO: How? Not yet possible.)
   """
 
-  defstruct reversed_stages: []
+  import Rx.Internal.ValidObservable
 
   @doc ~S"""
-  Creates an observable from the given function.
+  Creates an Observable from the given Enumerable.
+
+  ## Examples
+
+  (Yes, this is an absurd example.)
+
+    iex> Rx.Observable.from_enumerable(["Hello", "World"])
+    ...> |> Enum.to_list()
+    ["Hello", "World"]
+  """
+  def from_enumerable(e), do: %Rx.Observable.FromEnumerable{source: e}
+
+  @doc ~S"""
+  Creates an Observable from the given function.
 
   The function takes a single parameter (`next`) which is itself a function that
   may be called to produce values. If the function exits via an error, the Observable
   terminates with the same error after producing any values seen up to that point.
   If the function exits normally, the Observable terminates with "done" state.
 
-  This approach should be used for demonstration and lightweight purposes mostly
-  since it abuses the GenServer interface by inverting control and disrespecting
-  the demand requests.
+  Note that the function is executed in an independent process spawned when the
+  Observable receives a subscription.
 
   ## Examples
     iex> Rx.Observable.create(fn next ->
@@ -40,28 +55,25 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     ["Hello", "World"]
   """
-  def create(fun) when is_function(fun, 1) do
-    %__MODULE__{reversed_stages: [%Rx.Observable.CreateStage{fun: fun}]}
-  end
+  def create(fun) when is_function(fun, 1), do: %Rx.Observable.Create{fun: fun}
 
   @doc ~S"""
-  Creates an observable that emits no items and immediately terminates normally.
+  Creates an Observable that emits no items and immediately terminates normally.
 
   ## Examples
     iex> Rx.Observable.empty()
     ...> |> Enum.to_list()
     []
 
-    # iex> Rx.Observable.empty()
-    # ...> |> Rx.Observable.to_notifications()
-    # ...> |> Enum.to_list()
-    # [:done]
+    iex> Rx.Observable.empty()
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [:done]
   """
-  def empty, do:
-    %__MODULE__{reversed_stages: [%Rx.Observable.EmptyStage{}]}
+  def empty, do: %Rx.Observable.Empty{}
 
   @doc ~S"""
-  Creates an observable that emits no items and terminates with an error.
+  Creates an Observable that emits no items and terminates with an error.
 
   The function takes a single parameter which is the error to raise. This error
   is thrown immediately upon subscription.
@@ -74,9 +86,7 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     [{:error, "testing error"}]
   """
-  def throw(err) do
-    %__MODULE__{reversed_stages: [%Rx.Observable.ThrowStage{message: err}]}
-  end
+  def throw(error), do: %Rx.Observable.Throw{error: error}
 
   @doc ~S"""
   Converts each notification to a tuple (or the `:done` atom) describing the notification.
@@ -114,69 +124,6 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     [{:next, "Hello"}, {:next, "World"}, {:error, %RuntimeError{message: "foo"}}]
   """
-  def to_notifications(observable) do
-    add_stage(observable, %Rx.Observable.ToNotificationsStage{}, :to_notifications)
-  end
-
-  def start(%__MODULE__{reversed_stages: reversed_stages} = _observable) do
-    start_stages(reversed_stages)
-    # TODO: Move this into a materialize module a la Flow?
-  end
-
-  defp start_stages([%{__struct__: module} = producer_stage]) do
-    # TODO: Should this be start_link?
-    module.start(producer_stage, :producer)
-  end
-
-  defp start_stages([%{__struct__: module} = consumer_stage | more_stages]) do
-    {:ok, my_producer} = start_stages(more_stages)
-    {:ok, my_consumer} = module.start(consumer_stage, :producer_consumer)  # start_link?
-    GenStage.sync_subscribe(my_consumer, to: my_producer, cancel: :transient)
-    {:ok, my_consumer}
-  end
-
-  defp add_stage(%__MODULE__{reversed_stages: []} = _observable, _stage, fname) do
-    raise """
-    Rx.Observable.#{fname} can not be used here.
-
-    Try using Rx.Observable.create or some other function that creates a valid
-    source/producer Observable first.
-    """
-  end
-
-  defp add_stage(%__MODULE__{reversed_stages: reversed_stages} = observable,
-                 stage, _fname)
-  do
-    reversed_stages = [stage | reversed_stages]
-    %{observable | reversed_stages: reversed_stages}
-  end
-
-  defp add_stage(not_observable, _stage, fname) do
-    raise """
-    Rx.Observable.#{fname} can not be used here.
-
-    The first argument ("observable") is not actually an Rx.Observable.
-
-    #{inspect not_observable}
-    """
-  end
-
-  defimpl Enumerable do
-    def reduce(observable, acc, fun) do
-      case Rx.Observable.start(observable) do
-        {:ok, pid} ->
-          GenStage.stream([{pid, cancel: :transient}]).(acc, fun)
-        {:error, reason} ->
-          exit({reason, {__MODULE__, :reduce, [observable, acc, fun]}})
-      end
-    end
-
-    def count(_observable) do
-      {:error, __MODULE__}
-    end
-
-    def member?(_observable, _value) do
-      {:error, __MODULE__}
-    end
-  end
+  def to_notifications(observable), do:
+    %Rx.Observable.ToNotifications{source: enforce(observable)}
 end
