@@ -2,7 +2,7 @@ defmodule Rx.Observable.Empty do
   @moduledoc false  # internal, implements Rx.Observable.empty/0
 
   use Rx.Internal.ValidObservable
-  use Rx.Schedulable  # TODO: Move to Rx.Observable.Stage?
+  use Rx.Schedulable
 
   defstruct [:started_by]
 

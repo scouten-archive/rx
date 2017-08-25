@@ -2,11 +2,11 @@ defmodule Rx.Observable.FromEnumerable do
   @moduledoc false  # internal, implements Rx.Observable.from_enumerable/1
 
   use Rx.Internal.ValidObservable
-  use Rx.Schedulable  # TODO: Move to Rx.Observable.Stage?
+  use Rx.Schedulable
 
   defstruct [:source, :started_by]
 
-  # TODO: Replace with streaming implementation.
+  # FIXME: Should use a streaming implementation.
   def init(_time, %__MODULE__{source: source, started_by: observer}), do:
     {:ok, observer, new_tasks: Enum.map(source, &schedule_notif/1)
                           ++ [{0, :send_done_notif}]}

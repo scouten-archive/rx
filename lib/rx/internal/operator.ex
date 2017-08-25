@@ -1,5 +1,7 @@
 defmodule Rx.Internal.Operator do
-  @moduledoc false  # TODO: Write docs.
+  @moduledoc false
+  # Internal module, used to implement operators which consume one or more
+  # Observables and produce a new Observable.
 
   use Rx.Schedulable
 

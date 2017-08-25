@@ -2,7 +2,7 @@ defmodule Rx.Observable.Throw do
   @moduledoc false  # internal, implements Rx.Observable.throw/1
 
   use Rx.Internal.ValidObservable
-  use Rx.Schedulable  # TODO: Move to Rx.Observable.Stage?
+  use Rx.Schedulable
 
   defstruct [:error, :started_by]
 

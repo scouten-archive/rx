@@ -2,11 +2,11 @@ defmodule Rx.Observable.Create do
   @moduledoc false  # internal, implements Rx.Observable.create/1
 
   use Rx.Internal.ValidObservable
-  use Rx.Schedulable  # TODO: Move to Rx.Observable.Stage?
+  use Rx.Schedulable
 
   defstruct [:fun, :started_by]
 
-  # TODO: Naive implementation, blocks consuming process. Make better.
+  # FIXME: Naive implementation, blocks consuming process. Make better.
   def init(_time, %__MODULE__{fun: fun, started_by: observer}) do
     pid = Process.spawn(__MODULE__, :wrap_user_fun, [fun, self()], [])
     {:ok, {observer, pid}, new_tasks: [{0, :relay_next_event}]}
