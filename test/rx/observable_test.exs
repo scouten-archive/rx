@@ -15,7 +15,7 @@ defmodule Rx.ObservableTest do
                                                 c: :done}
       subs = sub_marbles "^----!"
 
-      assert observe(source |> Rx.Observable.to_notifications()) == expected
+      assert observe(Rx.Observable.to_notifications(source)) == expected
       assert subscriptions(source) == subs
     end
   end
