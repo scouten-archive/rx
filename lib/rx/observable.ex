@@ -33,8 +33,7 @@ defmodule Rx.Observable do
     ...> |> Enum.to_list()
     ["Hello", "World"]
   """
-  def from_enumerable(e), do:
-    %Rx.Observable.FromEnumerable{source: e}
+  def from_enumerable(e), do: %Rx.Observable.FromEnumerable{source: e}
 
   # @doc ~S"""
   # Creates an observable from the given function.
@@ -61,22 +60,20 @@ defmodule Rx.Observable do
   #   %__MODULE__{reversed_stages: [%Rx.Observable.CreateStage{fun: fun}]}
   # end
 
-  # @doc ~S"""
-  # Creates an observable that emits no items and immediately terminates normally.
-  #
-  # ## Examples
-  #   iex> Rx.Observable.empty()
-  #   ...> |> Enum.to_list()
-  #   []
-  #
-  #   # iex> Rx.Observable.empty()
-  #   # ...> |> Rx.Observable.to_notifications()
-  #   # ...> |> Enum.to_list()
-  #   # [:done]
-  # """
-  # TODO: Reimplement.
-  # def empty, do:
-  #   %__MODULE__{reversed_stages: [%Rx.Observable.EmptyStage{}]}
+  @doc ~S"""
+  Creates an observable that emits no items and immediately terminates normally.
+
+  ## Examples
+    iex> Rx.Observable.empty()
+    ...> |> Enum.to_list()
+    []
+
+    iex> Rx.Observable.empty()
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [:done]
+  """
+  def empty, do: %Rx.Observable.Empty{}
 
   # @doc ~S"""
   # Creates an observable that emits no items and terminates with an error.
