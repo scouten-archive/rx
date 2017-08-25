@@ -25,12 +25,5 @@ defmodule Rx.ObservableTest do
       source = cold "-a-b-c-|"
       assert Enum.to_list(source) == ["a", "b", "c"]
     end
-
-    # test "crashes if source stream crashes on construction" do
-    #   capture_log(fn ->
-    #     assert {{%RuntimeError{message: "test failure in init fn"}, _}, _} =
-    #       catch_exit(Enum.to_list(@crash_observable))
-    #   end)
-    # end
   end
 end
