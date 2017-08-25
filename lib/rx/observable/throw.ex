@@ -1,5 +1,5 @@
 defmodule Rx.Observable.Throw do
-  @moduledoc false  # internal
+  @moduledoc false  # internal, implements Rx.Observable.throw/1
 
   use Rx.Internal.ValidObservable
   use Rx.Schedulable  # TODO: Move to Rx.Observable.Stage?

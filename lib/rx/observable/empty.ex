@@ -1,5 +1,5 @@
 defmodule Rx.Observable.Empty do
-  @moduledoc false  # internal
+  @moduledoc false  # internal, implements Rx.Observable.empty/0
 
   use Rx.Internal.ValidObservable
   use Rx.Schedulable  # TODO: Move to Rx.Observable.Stage?

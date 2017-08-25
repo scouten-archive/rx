@@ -1,5 +1,5 @@
 defmodule Rx.Observable.FromEnumerable do
-  @moduledoc false
+  @moduledoc false  # internal, implements Rx.Observable.from_enumerable/1
 
   use Rx.Internal.ValidObservable
   use Rx.Schedulable  # TODO: Move to Rx.Observable.Stage?
