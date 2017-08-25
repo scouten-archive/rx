@@ -75,24 +75,21 @@ defmodule Rx.Observable do
   """
   def empty, do: %Rx.Observable.Empty{}
 
-  # @doc ~S"""
-  # Creates an observable that emits no items and terminates with an error.
-  #
-  # The function takes a single parameter which is the error to raise. This error
-  # is thrown immediately upon subscription.
-  #
-  # The error value should be a normal value, not an exception struct.
-  #
-  # ## Examples
-  #   iex> Rx.Observable.throw("testing error")
-  #   ...> |> Rx.Observable.to_notifications()
-  #   ...> |> Enum.to_list()
-  #   [{:error, "testing error"}]
-  # """
-  # TODO: Reimplement.
-  # def throw(err) do
-  #   %__MODULE__{reversed_stages: [%Rx.Observable.ThrowStage{message: err}]}
-  # end
+  @doc ~S"""
+  Creates an observable that emits no items and terminates with an error.
+
+  The function takes a single parameter which is the error to raise. This error
+  is thrown immediately upon subscription.
+
+  The error value should be a normal value, not an exception struct.
+
+  ## Examples
+    iex> Rx.Observable.throw("testing error")
+    ...> |> Rx.Observable.to_notifications()
+    ...> |> Enum.to_list()
+    [{:error, "testing error"}]
+  """
+  def throw(error), do: %Rx.Observable.Throw{error: error}
 
   @doc ~S"""
   Converts each notification to a tuple (or the `:done` atom) describing the notification.
