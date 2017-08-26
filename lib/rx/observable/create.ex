@@ -7,10 +7,15 @@ defmodule Rx.Observable.Create do
   defstruct [:fun, :started_by]
 
   # FIXME: Naive implementation, blocks consuming process. Make better.
+  @spec init(time :: number, args :: term) :: Rx.Schedulable.init_reply
   def init(_time, %__MODULE__{fun: fun, started_by: observer}) do
     pid = Process.spawn(__MODULE__, :wrap_user_fun, [fun, self()], [])
     {:ok, {observer, pid}, new_tasks: [{0, :relay_next_event}]}
   end
+
+  @spec handle_task(time :: number, args :: term, state :: term) ::
+    Rx.Schedulable.handle_task_reply
+  def handle_task(time, task, observer)
 
   def handle_task(_time, :relay_next_event, {observer, pid}) do
     receive do
@@ -27,11 +32,13 @@ defmodule Rx.Observable.Create do
     end
   end
 
+  @spec terminate(time :: number, reason :: Rx.Schedulable.reason, state :: term) :: :ok
   def terminate(_time, _reason, {_observer, pid}) do
     Process.exit(pid, :shutdown)
     :ok
   end
 
+  @spec wrap_user_fun(fun :: fun, observer_pid :: pid) :: :ok
   def wrap_user_fun(fun, observer_pid) do
     next = fn value -> send(observer_pid, {:next, value}) end
 

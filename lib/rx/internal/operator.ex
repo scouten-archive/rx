@@ -7,33 +7,38 @@ defmodule Rx.Internal.Operator do
 
   import Rx.Internal.ValidObservable
 
+  @type subscribe_reply ::
+    {:ok, state :: any} |
+    {:ok, state :: any, options :: keyword}
+
+  @type handle_events_reply ::
+    {:events, events :: [term], state :: term} |
+    {:done, events :: [term], state :: term} |
+    {:error, events :: [term], state :: term}
+
   @callback subscribe(time :: non_neg_integer, stage :: struct) ::
-    {:ok, state} |
-    {:ok, state, options :: keyword} when state: any
+    subscribe_reply
 
   @callback handle_events(time :: non_neg_integer,
                           events :: [term],
                           state :: term) ::
-    {:events, events :: [term], state :: term} |
-    {:done, events :: [term], state :: term} |
-    {:error, events :: [term], state :: term}
+    handle_events_reply
 
   @callback handle_done(time :: non_neg_integer,
                         state :: term) ::
-    {:events, events :: [term], state :: term} |
-    {:done, events :: [term], state :: term} |
-    {:error, events :: [term], state :: term}
+    handle_events_reply
 
   @callback handle_error(time :: non_neg_integer,
                          error :: term,
                          state :: term) ::
-    {:events, events :: [term], state :: term} |
-    {:done, events :: [term], state :: term} |
-    {:error, events :: [term], state :: term}
+    handle_events_reply
 
   @callback unsubscribe(time :: non_neg_integer,
                         reason :: term,
                         state :: term) :: :ok
+
+  @spec init(time :: number, args :: struct) :: Rx.Schedulable.init_reply
+  def init(time, args)
 
   def init(time, %{__struct__: module,
                    source: source_observable,
@@ -63,6 +68,10 @@ defmodule Rx.Internal.Operator do
 
           """
   end
+
+  @spec handle_task(time :: number, args :: term, state :: term) ::
+    Rx.Schedulable.handle_task_reply
+  def handle_task(time, task, state)
 
   def handle_task(time, {:next, values},
                   %{module: module, mod_state: mod_state} = state), do:
@@ -106,6 +115,7 @@ defmodule Rx.Internal.Operator do
   defp send_terminate({:error, error}, observer), do:
     {0, observer, {:error, error}}
 
+  @spec terminate(time :: number, reason :: Rx.Schedulable.reason, state :: term) :: :ok
   def terminate(time, reason, %{module: module, mod_state: mod_state}) do
     module.unsubscribe(time, reason, mod_state)
     :ok
@@ -118,16 +128,24 @@ defmodule Rx.Internal.Operator do
 
       use Rx.Internal.ValidObservable
 
+      @spec init(time :: number, args :: struct) :: Rx.Schedulable.init_reply
       def init(time, stage), do:
         Rx.Internal.Operator.init(time, stage)
 
+      @spec handle_task(time :: number, args :: term, state :: term) ::
+        Rx.Schedulable.handle_task_reply
       def handle_task(time, task, state), do:
         Rx.Internal.Operator.handle_task(time, task, state)
 
+      @spec terminate(time :: number, reason :: Rx.Schedulable.reason, state :: term) :: :ok
       def terminate(time, reason, state), do:
         Rx.Internal.Operator.terminate(time, reason, state)
 
+      @spec subscribe(time :: non_neg_integer, stage :: struct) ::
+        Rx.Internal.Operator.subscribe_reply
       def subscribe(_time, _observable), do: {:ok, :no_state}
+
+      @spec unsubscribe(time :: non_neg_integer, reason :: term, state :: term) :: :ok
       def unsubscribe(_time, _reason, _state), do: :ok
 
       defoverridable [subscribe: 2, unsubscribe: 3]

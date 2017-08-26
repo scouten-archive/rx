@@ -6,24 +6,33 @@ defmodule Rx.Schedulable do
     quote location: :keep do
       @behaviour Rx.Schedulable
 
+      @spec terminate(time :: number, reason :: reason, state :: term) :: :ok
       def terminate(_time, _reason, _state), do: :ok
 
       defoverridable [terminate: 3]
     end
   end
 
-  @callback init(time :: number, args :: term) ::
+  @type reason :: :normal | :shutdown | {:shutdown, term} | term
+
+  @type init_reply ::
     {:ok, state} |
-    {:ok, state, timeout | :hibernate} |
+    {:ok, state :: term, timeout | :hibernate} |
     :ignore |
-    {:stop, reason :: any} when state: any
+    {:stop, reason :: reason}
+
+  @type handle_task_reply ::
+    {:ok, new_state :: term} |
+    {:ok, new_state :: term, opts} |
+    {:stop, reason :: reason, new_state} |
+    {:stop, reason :: reason, new_state, opts: [term]}
+
+  @callback init(time :: number, args :: term) ::
+    init_reply
 
   @callback handle_task(time :: number, args :: term, state :: term) ::
-    {:ok, new_state} |
-    {:ok, new_state, opts} |
-    {:stop, reason, new_state} |
-    {:stop, reason, new_state} when new_state: term, reason: term, opts: [term]
+    handle_task_reply
 
-  @callback terminate(time :: number, reason, state :: term) ::
-    term when reason: :normal | :shutdown | {:shutdown, term} | term
+  @callback terminate(time :: number, reason :: reason, state :: term) ::
+    any
 end

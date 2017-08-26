@@ -3,6 +3,7 @@ defprotocol Rx.Internal.ObservableImplementation do
   # Used as a "duck-typing" marker to signal that a given module should be considered
   # a valid Rx.Observable implementation.
 
+  @spec is_observable(any) :: boolean
   def is_observable(o)
 end
 
@@ -15,15 +16,20 @@ defmodule Rx.Internal.ValidObservable do
       end
 
       defimpl Enumerable do
+        @spec reduce(observable :: Rx.Observable.t, acc :: any, fun :: fun) :: any
         def reduce(observable, acc, fun), do:
           Rx.Internal.Enumerable.reduce(observable, acc, fun)
 
+        @spec count(observable :: Rx.Observable.t) :: integer
         def count(_observable), do: {:error, __MODULE__}
+
+        @spec member?(observable :: Rx.Observable.t, value :: any) :: boolean
         def member?(_observable, _value), do: {:error, __MODULE__}
       end
     end
   end
 
+  @spec assert_is_observable(o :: any, fun :: string, arg :: any) :: any | no_return
   def assert_is_observable(o, fun, arg \\ nil) do
     try do
       true = Rx.Internal.ObservableImplementation.is_observable(o)
@@ -33,6 +39,11 @@ defmodule Rx.Internal.ValidObservable do
     o
   end
 
+  @spec assert_is_observable(o :: any,
+                             module :: atom,
+                             {fun :: atom, arity :: integer},
+                             arg :: any) ::
+                      any | no_return
   def assert_is_observable(o, module, {fun, arity}, arg), do:
     assert_is_observable(o, "#{inspect module}.#{fun}/#{arity}", arg)
 
