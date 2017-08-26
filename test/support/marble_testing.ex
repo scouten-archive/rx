@@ -82,6 +82,7 @@ defmodule MarbleTesting do
 
     unsubscribed =
       receive do
+        {:unsubscribed, :done, ^observable} -> nil
         {:unsubscribed, time, ^observable} -> time
       after
         0 -> nil
