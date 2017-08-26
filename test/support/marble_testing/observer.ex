@@ -20,5 +20,8 @@ defmodule MarbleTesting.Observer do
   def handle_task(time, :done, acc), do:
     {:ok, [{time, :done} | acc], stop: [{:marble_source, :done}]}
 
+  def handle_task(time, {:error, error}, acc), do:
+    {:ok, [{time, :error, error} | acc], stop: [{:marble_source, :done}]}
+
   def terminate(_time, _reason, acc), do: Enum.reverse(acc)
 end

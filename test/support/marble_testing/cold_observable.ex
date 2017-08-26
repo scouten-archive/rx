@@ -12,11 +12,14 @@ defmodule MarbleTesting.ColdObservable do
   end
 
   defp schedule_notif({time, :next, value}), do: {time, {:send_next_notif, value}}
-
+  defp schedule_notif({time, :error, error}), do: {time, {:send_error_notif, error}}
   defp schedule_notif({time, :done}), do: {time, :send_done_notif}
 
   def handle_task(_time, {:send_next_notif, value}, %{started_by: observer} = state), do:
     {:ok, state, send: [{0, observer, {:next, [value]}}]}
+
+  def handle_task(_time, {:send_error_notif, error}, %{started_by: observer} = state), do:
+    {:ok, state, send: [{0, observer, {:error, error}}]}
 
   def handle_task(_time, :send_done_notif, %{started_by: observer} = state), do:
     {:ok, state, send: [{0, observer, :done}]}
