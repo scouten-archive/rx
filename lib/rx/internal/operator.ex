@@ -46,7 +46,8 @@ defmodule Rx.Internal.Operator do
     state = %{source_ref: source_ref,
               module: module,
               mod_state: mod_state,
-              observer: observer}
+              observer: observer,
+              terminated: false}
 
     {:ok, state, start: [{0, source_ref, source_observable}]}
   end
@@ -64,6 +65,8 @@ defmodule Rx.Internal.Operator do
           """
   end
 
+  def handle_task(_time, _task, %{terminated: true} = state), do:
+    {:ok, state}
   def handle_task(time, {:next, values},
                   %{module: module, mod_state: mod_state} = state), do:
     handle_mod_reply(module.handle_events(time, values, mod_state), state)
@@ -84,12 +87,15 @@ defmodule Rx.Internal.Operator do
                        %{observer: observer, source_ref: source} = state, status)
   do
     {:ok,
-     update_mod_state(state, mod_state),
+     state |> update_mod_state(mod_state) |> maybe_terminate(status),
      send_events(events, observer, status, source)}
   end
 
   defp update_mod_state(state, mod_state), do:
     %{state | mod_state: mod_state}
+
+  defp maybe_terminate(state, :continue), do: state
+  defp maybe_terminate(state, _status), do: %{state | terminated: true}
 
   defp send_events([], _observer, :continue, _source), do: []
   defp send_events(events, observer, :continue, _source), do:
