@@ -25,6 +25,15 @@ defmodule MarbleTestingTest do
         ~S/cold observable cannot have unsubscription marker "!"/,
         fn -> cold "-a-b-!" end
     end
+
+    test "reports {time, nil} if source doesn't stop" do
+      source = cold      "-a-b-", values: %{a: 1, b: 2}
+      expected = marbles "-a-b-", values: %{a: 1, b: 2}
+      subs = sub_marbles "^----"
+
+      assert observe(source) == expected
+      assert subscriptions(source) == subs
+    end
   end
 
   describe "marbles/2" do
