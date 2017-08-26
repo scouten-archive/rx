@@ -112,6 +112,35 @@ defmodule Rx.Observable do
   def throw(error), do: %Rx.Observable.Throw{error: error}
 
   @doc ~S"""
+  Returns an Observable that emits at most the first _n_ items from the source Observable.
+  Completes as soon as _n_ items are returned.
+
+  ## Examples
+    iex> Rx.Observable.range(0, 4)
+    ...> |> Rx.Observable.take(2)
+    ...> |> Enum.to_list()
+    [0, 1]
+
+    iex> Rx.Observable.range(4, 0)
+    ...> |> Rx.Observable.take(2)
+    ...> |> Enum.to_list()
+    []
+
+    iex> Rx.Observable.range(17, 2)
+    ...> |> Rx.Observable.take(10)
+    ...> |> Enum.to_list()
+    [17, 18]
+  """
+  def take(observable, 0) do
+    enforce(observable)
+    %Rx.Observable.Empty{}
+  end
+
+  def take(observable, n) when is_integer(n) and n > 0 do
+    %Rx.Observable.Take{source: enforce(observable), n: n}
+  end
+
+  @doc ~S"""
   Converts each notification to a tuple (or the `:done` atom) describing the notification.
 
   The mapping is done as follows:
