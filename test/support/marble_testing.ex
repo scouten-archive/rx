@@ -1,4 +1,6 @@
 defmodule MarbleTesting do
+  # credo:disable-for-this-file Credo.Check.Readability.Specs
+
   @moduledoc false
 
   alias VirtualTimeScheduler, as: VTS

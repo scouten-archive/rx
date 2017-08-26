@@ -1,4 +1,6 @@
 defmodule MarbleTesting.ColdObservable do
+  # credo:disable-for-this-file Credo.Check.Readability.Specs
+
   @moduledoc false
 
   use Rx.Internal.ValidObservable

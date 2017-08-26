@@ -8,6 +8,7 @@ defmodule VirtualTimeScheduler do
             terminate_results: %{},
             root: 0
 
+  @spec run(first_schedulable :: struct) :: any
   def run(%{__struct__: _module} = first_schedulable) do
     root = make_ref()
 

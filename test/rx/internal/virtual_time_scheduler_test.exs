@@ -1,4 +1,6 @@
 defmodule VirtualTimeSchedulerTest do
+  # credo:disable-for-this-file Credo.Check.Readability.Specs
+
   use ExUnit.Case, async: true
 
   alias VirtualTimeScheduler, as: VTS
