@@ -1,4 +1,6 @@
 defmodule Rx.Observable.TakeTest do
+  # credo:disable-for-this-file Credo.Check.Readability.SinglePipe
+
   use ExUnit.Case, async: true
 
   import MarbleTesting
