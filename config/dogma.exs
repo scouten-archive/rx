@@ -6,5 +6,6 @@ config :dogma,
 
   override: [
     %Rule.LineLength{max_length: 90},
+    %Rule.PipelineStart{enabled: false},
     %Rule.TakenName{enabled: false},
   ]
