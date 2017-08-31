@@ -133,8 +133,8 @@ defmodule Rx.Internal.Operator do
 
       def subscribe(_time, _observable), do: {:ok, :no_state}
       def handle_events(_time, _values, state), do: {:ok, state}
-      def handle_done(_time, state), do: {:stop, state}
-      def handle_error(_time, _error, state), do: {:stop, state}
+      def handle_done(_time, state), do: {:done, [], state}
+      def handle_error(_time, error, state), do: {:error, [], error, state}
       def unsubscribe(_time, _reason, _state), do: :ok
 
       defoverridable [subscribe: 2,
