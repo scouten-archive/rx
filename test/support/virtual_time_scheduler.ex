@@ -75,6 +75,19 @@ defmodule VirtualTimeScheduler do
     |> send_messages(time, Keyword.get(options, :send, []))
   end
 
+  defp handle_options({callback, time, sid, {:stop, sub_state}}, v) do
+    handle_options({callback, time, sid, {:stop, sub_state, []}}, v)
+  end
+
+  defp handle_options({_callback, time, sid, {:stop, sub_state, options}}, v) do
+    v
+    |> put_sub_state(sid, sub_state)
+    |> start_new_schedulables(time, sid, Keyword.get(options, :start, []))
+    |> stop_schedulables(time, [{sid, :normal} | Keyword.get(options, :stop, [])])
+    |> add_tasks(time, sid, Keyword.get(options, :new_tasks, []))
+    |> send_messages(time, Keyword.get(options, :send, []))
+  end
+
   defp put_sub_state(%__MODULE__{sub_states: sub_states} = v,
                      sid, sub_state)
   do

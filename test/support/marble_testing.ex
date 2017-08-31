@@ -42,7 +42,7 @@ defmodule MarbleTesting do
   ```
   """
   def observe(observable), do:
-    VTS.run(%MarbleTesting.Observer{observable: enforce(observable)})
+    VTS.run(%MarbleTesting.Observer{source: enforce(observable)})
 
   @doc ~S"""
   Returns a tuple with the time of subscription and unsubscription for the given
