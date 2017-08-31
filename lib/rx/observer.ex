@@ -20,7 +20,7 @@ defmodule Rx.Observer do
     {:ok, state} |
     {:stop, reason :: any} when state: any
 
-  @callback handle_values(time :: non_neg_integer, values :: [term], state :: term) ::
+  @callback handle_events(time :: non_neg_integer, values :: [term], state :: term) ::
     {:ok, state :: term} |
     {:stop, reason :: any}
 
@@ -135,14 +135,14 @@ defmodule Rx.Observer do
         Rx.Observer.terminate(time, reason, state)
 
       def subscribe(_time, _args), do: {:ok, :no_state}
-      def handle_values(_time, _values, state), do: {:ok, state}
+      def handle_events(_time, _values, state), do: {:ok, state}
       def handle_done(_time, state), do: {:stop, state}
       def handle_error(_time, _error, state), do: {:stop, state}
       def unsubscribe(_time, _reason, _state), do: :ok
 
       defoverridable [init: 2, # should only be done by Rx.Internal.*
                       subscribe: 2,
-                      handle_values: 3,
+                      handle_events: 3,
                       handle_done: 2,
                       handle_error: 3,
                       unsubscribe: 3]
