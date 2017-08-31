@@ -1,14 +1,13 @@
 defmodule MarbleTesting.Observer do
   @moduledoc false
 
-  use Rx.Schedulable
+  use Rx.Observer
 
-  defstruct [:observable]
+  defstruct [:source]
 
-  def init(_time, %__MODULE__{observable: source} = _), do:
-    {:ok, [], start: [{0, :marble_source, source}]}
+  def subscribe(_time, %__MODULE__{} = _), do: {:ok, []}
 
-  def handle_task(time, {:next, values}, acc) do
+  def handle_events(time, values, acc) do
     new_notifs =
       values
       |> Enum.reverse()
@@ -17,11 +16,9 @@ defmodule MarbleTesting.Observer do
     {:ok, new_notifs ++ acc}
   end
 
-  def handle_task(time, :done, acc), do:
-    {:ok, [{time, :done} | acc], stop: [{:marble_source, :done}]}
+  def handle_done(time, acc), do: {:ok, [{time, :done} | acc]}
 
-  def handle_task(time, {:error, error}, acc), do:
-    {:ok, [{time, :error, error} | acc], stop: [{:marble_source, :done}]}
+  def handle_error(time, error, acc), do: {:ok, [{time, :error, error} | acc]}
 
-  def terminate(_time, _reason, acc), do: Enum.reverse(acc)
+  def unsubscribe(_time, _reason, acc), do: Enum.reverse(acc)
 end
