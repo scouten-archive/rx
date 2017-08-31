@@ -85,6 +85,10 @@ defmodule Rx.Observer do
     maybe_terminate(state, mod_state, [], status_for_fun(fun))
   defp handle_mod_reply({:ok, mod_state, opts}, state, fun), do:
     maybe_terminate(state, mod_state, opts, status_for_fun(fun))
+  defp handle_mod_reply({:stop, mod_state}, state, _fun), do:
+    maybe_terminate(state, mod_state, [], :stop)
+  defp handle_mod_reply({:stop, mod_state, opts}, state, _fun), do:
+    maybe_terminate(state, mod_state, opts, :stop)
   defp handle_mod_reply(bad_reply, state, fun), do:
     raise ArgumentError,
       """

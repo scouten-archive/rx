@@ -3,7 +3,7 @@ defmodule Rx.Internal.Operator do
   # Internal module, used to implement operators which consume one or more
   # Observables and produce a new Observable.
 
-  use Rx.Schedulable
+  use Rx.Observer
 
   import Rx.Internal.ValidObservable
 
@@ -35,47 +35,46 @@ defmodule Rx.Internal.Operator do
                         reason :: term,
                         state :: term) :: :ok
 
-  def init(time, %{__struct__: module,
+  defstruct [:source, :started_by, :operator]
+
+  def init(time, %{__struct__: _module,
                    source: source_observable,
-                   started_by: observer} = stage)
+                   started_by: observer} = operator)
   do
-    enforce(source_observable)
-    source_ref = make_ref()
-    {:ok, mod_state} = module.subscribe(time, stage)
-
-    state = %{source_ref: source_ref,
-              module: module,
-              mod_state: mod_state,
-              observer: observer,
-              terminated: false}
-
-    {:ok, state, start: [{0, source_ref, source_observable}]}
+    Rx.Observer.init(time, %__MODULE__{source: enforce(source_observable),
+                                       started_by: observer,
+                                       operator: operator})
   end
 
-  def init(_time, %{__struct__: _module} = stage) do
+  def init(_time, %{__struct__: _module} = operator) do
     raise ArgumentError,
           """
           Rx.Internal.Operator can only be used with Observable stages that
           are subscribed to and themselves subscribe to another Observable.
 
-          This struct is missing its "started_by" or "source" member or both.
+          This struct is missing its "started_by" or "source" member or both:
 
-          #{inspect stage}
+          #{inspect operator}
 
           """
   end
 
-  def handle_task(_time, _task, %{terminated: true} = state), do:
-    {:ok, state}
-  def handle_task(time, {:next, values},
-                  %{module: module, mod_state: mod_state} = state), do:
+  def subscribe(time, %__MODULE__{operator: %{__struct__: module} = operator,
+                                  started_by: observer}), do:
+    handle_mod_reply(module.subscribe(time, operator),
+                     %{module: module, mod_state: nil, observer: observer})
+
+  def handle_events(time, values, %{module: module, mod_state: mod_state} = state), do:
     handle_mod_reply(module.handle_events(time, values, mod_state), state)
-  def handle_task(time, :done, %{module: module, mod_state: mod_state} = state), do:
+
+  def handle_done(time, %{module: module, mod_state: mod_state} = state), do:
     handle_mod_reply(module.handle_done(time, mod_state), state)
-  def handle_task(time, {:error, error},
-                  %{module: module, mod_state: mod_state} = state), do:
+
+  def handle_error(time, error, %{module: module, mod_state: mod_state} = state), do:
     handle_mod_reply(module.handle_error(time, error, mod_state), state)
 
+  defp handle_mod_reply({:ok, mod_state}, state), do:
+    dispatch_events([], mod_state, state, :continue)
   defp handle_mod_reply({:events, events, mod_state}, state), do:
     dispatch_events(events, mod_state, state, :continue)
   defp handle_mod_reply({:done, events, mod_state}, state), do:
@@ -84,38 +83,37 @@ defmodule Rx.Internal.Operator do
     dispatch_events(events, mod_state, state, {:error, error})
 
   defp dispatch_events(events, mod_state,
-                       %{observer: observer, source_ref: source} = state, status)
+                       %{observer: observer} = state,
+                       status)
   do
-    {:ok,
-     state |> update_mod_state(mod_state) |> maybe_terminate(status),
-     send_events(events, observer, status, source)}
+    {ok_or_stop(status),
+     update_mod_state(state, mod_state),
+     send_events(events, observer, status)}
   end
+
+  defp ok_or_stop(:continue), do: :ok
+  defp ok_or_stop(:events), do: :ok
+  defp ok_or_stop(_), do: :stop
 
   defp update_mod_state(state, mod_state), do:
     %{state | mod_state: mod_state}
 
-  defp maybe_terminate(state, :continue), do: state
-  defp maybe_terminate(state, _status), do: %{state | terminated: true}
-
-  defp send_events([], _observer, :continue, _source), do: []
-  defp send_events(events, observer, :continue, _source), do:
+  defp send_events([], _observer, :continue), do: []
+  defp send_events(events, observer, :continue), do:
     [send: [{0, observer, {:next, events}}]]
 
-  defp send_events([], observer, status, source), do:
-    [send: [send_terminate(status, observer)], stop: [{source, :unsubscribe}]]
-  defp send_events(events, observer, status, source), do:
-    [send: [{0, observer, {:next, events}}, send_terminate(status, observer)],
-     stop: [{source, :unsubscribe}]]
+  defp send_events([], observer, status), do:
+    [send: [send_terminate(status, observer)]]
+  defp send_events(events, observer, status), do:
+    [send: [{0, observer, {:next, events}}, send_terminate(status, observer)]]
 
   defp send_terminate(:done, observer), do:
     {0, observer, :done}
   defp send_terminate({:error, error}, observer), do:
     {0, observer, {:error, error}}
 
-  def terminate(time, reason, %{module: module, mod_state: mod_state}) do
+  def unsubscribe(time, reason, %{module: module, mod_state: mod_state}), do:
     module.unsubscribe(time, reason, mod_state)
-    :ok
-  end
 
   @doc false
   defmacro __using__(opts) do
@@ -128,15 +126,22 @@ defmodule Rx.Internal.Operator do
         Rx.Internal.Operator.init(time, stage)
 
       def handle_task(time, task, state), do:
-        Rx.Internal.Operator.handle_task(time, task, state)
+        Rx.Observer.handle_task(time, task, state)
 
       def terminate(time, reason, state), do:
-        Rx.Internal.Operator.terminate(time, reason, state)
+        Rx.Observer.terminate(time, reason, state)
 
       def subscribe(_time, _observable), do: {:ok, :no_state}
+      def handle_events(_time, _values, state), do: {:ok, state}
+      def handle_done(_time, state), do: {:stop, state}
+      def handle_error(_time, _error, state), do: {:stop, state}
       def unsubscribe(_time, _reason, _state), do: :ok
 
-      defoverridable [subscribe: 2, unsubscribe: 3]
+      defoverridable [subscribe: 2,
+                      handle_events: 3,
+                      handle_done: 2,
+                      handle_error: 3,
+                      unsubscribe: 3]
     end
   end
 end
