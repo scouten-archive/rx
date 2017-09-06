@@ -18,7 +18,8 @@ defmodule VirtualTimeSchedulerTest do
                             {0, {:append, 5}}]}
     end
 
-    def handle_task(time, {:append, n}, acc), do: {:ok, [{time, n} | acc]}
+    def handle_task(_time, {:append, n}, acc), do:
+      {:ok, [{VTS.time_now(), n} | acc]}
 
     def terminate(_time, _reason, acc), do: Enum.reverse(acc)
   end
@@ -44,7 +45,8 @@ defmodule VirtualTimeSchedulerTest do
                             {100, {:append, 6}}]}
     end
 
-    def handle_task(time, {:append, n}, acc), do: {:ok, [{time, n} | acc]}
+    def handle_task(_time, {:append, n}, acc), do:
+      {:ok, [{VTS.time_now(), n} | acc]}
 
     def terminate(_time, _reason, acc), do: Enum.reverse(acc)
   end
@@ -71,7 +73,7 @@ defmodule VirtualTimeSchedulerTest do
                             {700, :reverse}]}
     end
 
-    def handle_task(time, {:append, n}, acc), do: {:ok, [{time, n} | acc]}
+    def handle_task(_time, {:append, n}, acc), do: {:ok, [{VTS.time_now(), n} | acc]}
     def handle_task(_time, :reverse, acc), do: {:ok, Enum.reverse(acc)}
 
     def terminate(_time, _reason, acc), do: acc
