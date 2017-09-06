@@ -6,9 +6,9 @@ defmodule Rx.Observable.Empty do
 
   defstruct [:started_by]
 
-  def init(_time, %__MODULE__{started_by: observer}), do:
+  def init(%__MODULE__{started_by: observer}), do:
     {:ok, observer, new_tasks: [{0, :send_done_notif}]}
 
-  def handle_task(_time, :send_done_notif, observer), do:
+  def handle_task(:send_done_notif, observer), do:
     {:ok, observer, send: [{0, observer, :done}]}
 end

@@ -7,9 +7,9 @@ defmodule MarbleTesting.Observer do
 
   defstruct [:source]
 
-  def subscribe(_time, %__MODULE__{} = _), do: {:ok, []}
+  def subscribe(%__MODULE__{} = _), do: {:ok, []}
 
-  def handle_events(_time, values, acc) do
+  def handle_events(values, acc) do
     time = VTS.time_now()
 
     new_notifs =
@@ -20,9 +20,9 @@ defmodule MarbleTesting.Observer do
     {:ok, new_notifs ++ acc}
   end
 
-  def handle_done(_time, acc), do: {:ok, [{VTS.time_now(), :done} | acc]}
+  def handle_done(acc), do: {:ok, [{VTS.time_now(), :done} | acc]}
 
-  def handle_error(_time, error, acc), do: {:ok, [{VTS.time_now(), :error, error} | acc]}
+  def handle_error(error, acc), do: {:ok, [{VTS.time_now(), :error, error} | acc]}
 
-  def unsubscribe(_time, _reason, acc), do: Enum.reverse(acc)
+  def unsubscribe(_reason, acc), do: Enum.reverse(acc)
 end

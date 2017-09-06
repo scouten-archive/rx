@@ -7,46 +7,42 @@ defmodule Rx.Internal.Operator do
 
   import Rx.Internal.ValidObservable
 
-  @callback subscribe(time :: non_neg_integer, stage :: struct) ::
+  @callback subscribe(stage :: struct) ::
     {:ok, state} |
     {:ok, state, options :: keyword} when state: any
 
-  @callback handle_events(time :: non_neg_integer,
-                          events :: [term],
+  @callback handle_events(events :: [term],
                           state :: term) ::
     {:events, events :: [term], state :: term} |
     {:done, events :: [term], state :: term} |
     {:error, events :: [term], state :: term}
 
-  @callback handle_done(time :: non_neg_integer,
-                        state :: term) ::
+  @callback handle_done(state :: term) ::
     {:events, events :: [term], state :: term} |
     {:done, events :: [term], state :: term} |
     {:error, events :: [term], state :: term}
 
-  @callback handle_error(time :: non_neg_integer,
-                         error :: term,
+  @callback handle_error(error :: term,
                          state :: term) ::
     {:events, events :: [term], state :: term} |
     {:done, events :: [term], state :: term} |
     {:error, events :: [term], state :: term}
 
-  @callback unsubscribe(time :: non_neg_integer,
-                        reason :: term,
+  @callback unsubscribe(reason :: term,
                         state :: term) :: :ok
 
   defstruct [:source, :started_by, :operator]
 
-  def init(time, %{__struct__: _module,
-                   source: source_observable,
-                   started_by: observer} = operator)
+  def init(%{__struct__: _module,
+           source: source_observable,
+           started_by: observer} = operator)
   do
-    Rx.Observer.init(time, %__MODULE__{source: enforce(source_observable),
-                                       started_by: observer,
-                                       operator: operator})
+    Rx.Observer.init(%__MODULE__{source: enforce(source_observable),
+                     started_by: observer,
+                     operator: operator})
   end
 
-  def init(_time, %{__struct__: _module} = operator) do
+  def init(%{__struct__: _module} = operator) do
     raise ArgumentError,
           """
           Rx.Internal.Operator can only be used with Observable stages that
@@ -59,19 +55,19 @@ defmodule Rx.Internal.Operator do
           """
   end
 
-  def subscribe(time, %__MODULE__{operator: %{__struct__: module} = operator,
-                                  started_by: observer}), do:
-    handle_mod_reply(module.subscribe(time, operator),
+  def subscribe(%__MODULE__{operator: %{__struct__: module} = operator,
+                            started_by: observer}), do:
+    handle_mod_reply(module.subscribe(operator),
                      %{module: module, mod_state: nil, observer: observer})
 
-  def handle_events(time, values, %{module: module, mod_state: mod_state} = state), do:
-    handle_mod_reply(module.handle_events(time, values, mod_state), state)
+  def handle_events(values, %{module: module, mod_state: mod_state} = state), do:
+    handle_mod_reply(module.handle_events(values, mod_state), state)
 
-  def handle_done(time, %{module: module, mod_state: mod_state} = state), do:
-    handle_mod_reply(module.handle_done(time, mod_state), state)
+  def handle_done(%{module: module, mod_state: mod_state} = state), do:
+    handle_mod_reply(module.handle_done(mod_state), state)
 
-  def handle_error(time, error, %{module: module, mod_state: mod_state} = state), do:
-    handle_mod_reply(module.handle_error(time, error, mod_state), state)
+  def handle_error(error, %{module: module, mod_state: mod_state} = state), do:
+    handle_mod_reply(module.handle_error(error, mod_state), state)
 
   defp handle_mod_reply({:ok, mod_state}, state), do:
     dispatch_events([], mod_state, state, :continue)
@@ -112,8 +108,8 @@ defmodule Rx.Internal.Operator do
   defp send_terminate({:error, error}, observer), do:
     {0, observer, {:error, error}}
 
-  def unsubscribe(time, reason, %{module: module, mod_state: mod_state}), do:
-    module.unsubscribe(time, reason, mod_state)
+  def unsubscribe(reason, %{module: module, mod_state: mod_state}), do:
+    module.unsubscribe(reason, mod_state)
 
   @doc false
   defmacro __using__(opts) do
@@ -122,26 +118,26 @@ defmodule Rx.Internal.Operator do
 
       use Rx.Internal.ValidObservable
 
-      def init(time, stage), do:
-        Rx.Internal.Operator.init(time, stage)
+      def init(stage), do:
+        Rx.Internal.Operator.init(stage)
 
-      def handle_task(time, task, state), do:
-        Rx.Observer.handle_task(time, task, state)
+      def handle_task(task, state), do:
+        Rx.Observer.handle_task(task, state)
 
-      def terminate(time, reason, state), do:
-        Rx.Observer.terminate(time, reason, state)
+      def terminate(reason, state), do:
+        Rx.Observer.terminate(reason, state)
 
-      def subscribe(_time, _observable), do: {:ok, :no_state}
-      def handle_events(_time, _values, state), do: {:ok, state}
-      def handle_done(_time, state), do: {:done, [], state}
-      def handle_error(_time, error, state), do: {:error, [], error, state}
-      def unsubscribe(_time, _reason, _state), do: :ok
+      def subscribe(_observable), do: {:ok, :no_state}
+      def handle_events(_values, state), do: {:ok, state}
+      def handle_done(state), do: {:done, [], state}
+      def handle_error(error, state), do: {:error, [], error, state}
+      def unsubscribe(_reason, _state), do: :ok
 
-      defoverridable [subscribe: 2,
-                      handle_events: 3,
-                      handle_done: 2,
-                      handle_error: 3,
-                      unsubscribe: 3]
+      defoverridable [subscribe: 1,
+                      handle_events: 2,
+                      handle_done: 1,
+                      handle_error: 2,
+                      unsubscribe: 2]
     end
   end
 end

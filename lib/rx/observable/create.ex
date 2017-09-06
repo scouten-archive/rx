@@ -7,12 +7,12 @@ defmodule Rx.Observable.Create do
   defstruct [:fun, :started_by]
 
   # FIXME: Naive implementation, blocks consuming process. Make better.
-  def init(_time, %__MODULE__{fun: fun, started_by: observer}) do
+  def init(%__MODULE__{fun: fun, started_by: observer}) do
     pid = Process.spawn(__MODULE__, :wrap_user_fun, [fun, self()], [])
     {:ok, {observer, pid}, new_tasks: [{0, :relay_next_event}]}
   end
 
-  def handle_task(_time, :relay_next_event, {observer, pid}) do
+  def handle_task(:relay_next_event, {observer, pid}) do
     receive do
       {:next, value} ->
         {:ok, {observer, pid}, send: [{0, observer, {:next, [value]}}],
@@ -27,7 +27,7 @@ defmodule Rx.Observable.Create do
     end
   end
 
-  def terminate(_time, _reason, {_observer, pid}) do
+  def terminate(_reason, {_observer, pid}) do
     Process.exit(pid, :shutdown)
     :ok
   end

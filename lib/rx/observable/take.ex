@@ -5,11 +5,11 @@ defmodule Rx.Observable.Take do
 
   defstruct [:source, :started_by, :n]
 
-  def subscribe(_time, %__MODULE__{n: n}), do:
+  def subscribe(%__MODULE__{n: n}), do:
     {:ok, n}
 
-  def handle_events(_time, events, n_remaining) when length(events) < n_remaining, do:
+  def handle_events(events, n_remaining) when length(events) < n_remaining, do:
     {:events, events, n_remaining - length(events)}
-  def handle_events(_time, events, n_remaining), do:
+  def handle_events(events, n_remaining), do:
     {:done, Enum.take(events, n_remaining), 0}
 end

@@ -30,7 +30,7 @@ defmodule VirtualTimeScheduler do
                 {time, _seq, sid, {:init, %{__struct__: module} = schedulable}})
   do
     put_time(time)
-    {:init, time, sid, module.init(time, schedulable)}
+    {:init, time, sid, module.init(schedulable)}
   end
 
   defp run_task(%__MODULE__{modules: modules, sub_states: sub_states},
@@ -39,7 +39,7 @@ defmodule VirtualTimeScheduler do
     put_time(time)
     module = Map.get(modules, sid)
     sub_state = Map.get(sub_states, sid)
-    {:task, time, sid, module.handle_task(time, task, sub_state)}
+    {:task, time, sid, module.handle_task(task, sub_state)}
   end
 
   defp run_task(%__MODULE__{modules: modules, sub_states: sub_states},
@@ -51,7 +51,7 @@ defmodule VirtualTimeScheduler do
 
     case module do
       nil -> :nop
-      _ -> {:terminate, time, sid, module.terminate(time, reason, sub_state)}
+      _ -> {:terminate, time, sid, module.terminate(reason, sub_state)}
     end
   end
 
@@ -206,6 +206,8 @@ defmodule VirtualTimeScheduler do
     case Process.get(:virtual_time_scheduler_time) do
       time when is_integer(time) ->
         time
+      :done ->
+        :done
       nil ->
         raise RuntimeError, "VirtualTimeScheduler.time_now/0 invalid outside of a test"
     end
