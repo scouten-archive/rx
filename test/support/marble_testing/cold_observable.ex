@@ -9,7 +9,8 @@ defmodule MarbleTesting.ColdObservable do
   defstruct [:notifs, :log_target_pid, :started_by]
 
   def init(%__MODULE__{notifs: notifs} = obs) do
-    send(obs.log_target_pid, {:subscribed, VTS.time_now(), Map.put(obs, :started_by, nil)})
+    send(obs.log_target_pid,
+         {:subscribed, VTS.time_now(), Map.put(obs, :started_by, nil)})
     {:ok, obs, new_tasks: Enum.map(notifs, &schedule_notif/1)}
   end
 
