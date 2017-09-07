@@ -10,7 +10,7 @@ defmodule VirtualTimeSchedulerTest do
 
     defstruct placeholder: nil
 
-    def init(0, %__MODULE__{} = _) do
+    def init(%__MODULE__{} = _) do
       {:ok, [], new_tasks: [{0, {:append, 1}},
                             {0, {:append, 2}},
                             {0, {:append, 3}},
@@ -18,9 +18,10 @@ defmodule VirtualTimeSchedulerTest do
                             {0, {:append, 5}}]}
     end
 
-    def handle_task(time, {:append, n}, acc), do: {:ok, [{time, n} | acc]}
+    def handle_task({:append, n}, acc), do:
+      {:ok, [{VTS.time_now(), n} | acc]}
 
-    def terminate(_time, _reason, acc), do: Enum.reverse(acc)
+    def terminate(_reason, acc), do: Enum.reverse(acc)
   end
 
   test "can run a preconfigured sequence of events in order of addition" do
@@ -35,7 +36,7 @@ defmodule VirtualTimeSchedulerTest do
 
     defstruct placeholder: nil
 
-    def init(0, %__MODULE__{} = _) do
+    def init(%__MODULE__{} = _) do
       {:ok, [], new_tasks: [{0, {:append, 1}},
                             {100, {:append, 2}},
                             {0, {:append, 3}},
@@ -44,9 +45,10 @@ defmodule VirtualTimeSchedulerTest do
                             {100, {:append, 6}}]}
     end
 
-    def handle_task(time, {:append, n}, acc), do: {:ok, [{time, n} | acc]}
+    def handle_task({:append, n}, acc), do:
+      {:ok, [{VTS.time_now(), n} | acc]}
 
-    def terminate(_time, _reason, acc), do: Enum.reverse(acc)
+    def terminate(_reason, acc), do: Enum.reverse(acc)
   end
 
   test "can run tasks in order sorted by time, even if scheduled at random" do
@@ -61,7 +63,7 @@ defmodule VirtualTimeSchedulerTest do
 
     defstruct placeholder: nil
 
-    def init(0, %__MODULE__{} = _) do
+    def init(%__MODULE__{} = _) do
       {:ok, [], new_tasks: [{0, {:append, 1}},
                             {100, {:append, 2}},
                             {0, {:append, 3}},
@@ -71,10 +73,10 @@ defmodule VirtualTimeSchedulerTest do
                             {700, :reverse}]}
     end
 
-    def handle_task(time, {:append, n}, acc), do: {:ok, [{time, n} | acc]}
-    def handle_task(_time, :reverse, acc), do: {:ok, Enum.reverse(acc)}
+    def handle_task({:append, n}, acc), do: {:ok, [{VTS.time_now(), n} | acc]}
+    def handle_task(:reverse, acc), do: {:ok, Enum.reverse(acc)}
 
-    def terminate(_time, _reason, acc), do: acc
+    def terminate(_reason, acc), do: acc
   end
 
   test "can run tasks that call different functions" do
@@ -89,9 +91,9 @@ defmodule VirtualTimeSchedulerTest do
 
     defstruct placeholder: nil
 
-    def init(0, _), do: {:ok, [], new_tasks: [{-10, :whatever}]}
-    def handle_task(_time, _, acc), do: {:ok, acc}
-    def terminate(_time, _reason, acc), do: acc
+    def init(_), do: {:ok, [], new_tasks: [{-10, :whatever}]}
+    def handle_task(_, acc), do: {:ok, acc}
+    def terminate(_reason, acc), do: acc
   end
 
   test "does not accept negative delays" do
@@ -109,13 +111,13 @@ defmodule VirtualTimeSchedulerTest do
 
     defstruct placeholder: nil
 
-    def init(0, _), do: {:ok, [], new_tasks: [{0, {:append, 1}}]}
+    def init(_), do: {:ok, [], new_tasks: [{0, {:append, 1}}]}
 
-    def handle_task(0, {:append, n}, acc) when n > 4, do: {:ok, acc}
-    def handle_task(0, {:append, n}, acc), do:
+    def handle_task({:append, n}, acc) when n > 4, do: {:ok, acc}
+    def handle_task({:append, n}, acc), do:
       {:ok, [{0, n} | acc], new_tasks: [{0, {:append, n + 1}}]}
 
-    def terminate(_time, _reason, acc), do: Enum.reverse(acc)
+    def terminate(_reason, acc), do: Enum.reverse(acc)
   end
 
   test "can schedule new events at same 'time' while running" do
@@ -130,13 +132,13 @@ defmodule VirtualTimeSchedulerTest do
 
     defstruct placeholder: nil
 
-    def init(0, _), do: {:ok, [], new_tasks: [{10, {:append, 1}}]}
+    def init(_), do: {:ok, [], new_tasks: [{10, {:append, 1}}]}
 
-    def handle_task(_time, {:append, n}, acc) when n > 4, do: {:ok, acc}
-    def handle_task(time, {:append, n}, acc), do:
-      {:ok, [{time, n} | acc], new_tasks: [{10, {:append, n + 1}}]}
+    def handle_task({:append, n}, acc) when n > 4, do: {:ok, acc}
+    def handle_task({:append, n}, acc), do:
+      {:ok, [{VTS.time_now(), n} | acc], new_tasks: [{10, {:append, n + 1}}]}
 
-    def terminate(_time, _reason, acc), do: Enum.reverse(acc)
+    def terminate(_reason, acc), do: Enum.reverse(acc)
   end
 
   test "can schedule new events at later 'time' while running" do
@@ -151,14 +153,14 @@ defmodule VirtualTimeSchedulerTest do
 
     defstruct starting_count: 0
 
-    def init(0, %__MODULE__{starting_count: starting_count}),
+    def init(%__MODULE__{starting_count: starting_count}),
       do: {:ok, [], new_tasks: [{10, {:append, starting_count}}]}
 
-    def handle_task(_time, {:append, n}, acc) when n > 45, do: {:ok, acc}
-    def handle_task(time, {:append, n}, acc), do:
-      {:ok, [{time, n} | acc], new_tasks: [{10, {:append, n + 1}}]}
+    def handle_task({:append, n}, acc) when n > 45, do: {:ok, acc}
+    def handle_task({:append, n}, acc), do:
+      {:ok, [{VTS.time_now(), n} | acc], new_tasks: [{10, {:append, n + 1}}]}
 
-    def terminate(_time, _reason, acc), do: Enum.reverse(acc)
+    def terminate(_reason, acc), do: Enum.reverse(acc)
   end
 
   test "passes arguments through from original struct to init func" do
@@ -173,15 +175,15 @@ defmodule VirtualTimeSchedulerTest do
 
     defstruct starting_count: 0, started_by: nil
 
-    def init(20, %__MODULE__{starting_count: starting_count, started_by: ping_ref}),
+    def init(%__MODULE__{starting_count: starting_count, started_by: ping_ref}),
       do: {:ok, ping_ref, new_tasks: [{0, {:send, starting_count}}]}
 
-    def handle_task(_time, {:send, n}, ping_ref), do:
+    def handle_task({:send, n}, ping_ref), do:
       {:ok, ping_ref, new_tasks: [{20, {:send, n - 1}}],
                       send: [{0, ping_ref, {:ping, n}}]}
 
-    def terminate(time, _reason, _ping_ref) do
-      send(self(), {:pong_terminated, time})
+    def terminate(_reason, _ping_ref) do
+      send(self(), {:pong_terminated, VTS.time_now()})
       :ok
     end
   end
@@ -191,25 +193,25 @@ defmodule VirtualTimeSchedulerTest do
 
     defstruct starting_count: 0
 
-    def init(0, %__MODULE__{starting_count: starting_count}),
+    def init(%__MODULE__{starting_count: starting_count}),
       do: {:ok, [], new_tasks: [{10, {:append, starting_count}},
                                 {15, :start_pong},
                                 {65, :stop_pong}]}
 
-    def handle_task(_time, {:append, n}, acc) when n > 45, do: {:ok, acc}
-    def handle_task(time, {:append, n}, acc), do:
-      {:ok, [{time, n} | acc], new_tasks: [{20, {:append, n + 1}}]}
+    def handle_task({:append, n}, acc) when n > 45, do: {:ok, acc}
+    def handle_task({:append, n}, acc), do:
+      {:ok, [{VTS.time_now(), n} | acc], new_tasks: [{20, {:append, n + 1}}]}
 
-    def handle_task(_time, :start_pong, acc), do:
+    def handle_task(:start_pong, acc), do:
       {:ok, acc, start: [{5, :pong, %PongSchedulable{starting_count: -1}}]}
 
-    def handle_task(_time, :stop_pong, acc), do:
+    def handle_task(:stop_pong, acc), do:
       {:ok, acc, stop: [{:pong, :mumble}]}
 
-    def handle_task(time, {:ping, value}, acc), do:
-      {:ok, [{time, value} | acc]}
+    def handle_task({:ping, value}, acc), do:
+      {:ok, [{VTS.time_now(), value} | acc]}
 
-    def terminate(_time, _reason, acc), do: Enum.reverse(acc)
+    def terminate(_reason, acc), do: Enum.reverse(acc)
   end
 
   test "can have multiple schedulable structs at once" do

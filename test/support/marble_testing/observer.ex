@@ -3,11 +3,15 @@ defmodule MarbleTesting.Observer do
 
   use Rx.Observer
 
+  alias VirtualTimeScheduler, as: VTS
+
   defstruct [:source]
 
-  def subscribe(_time, %__MODULE__{} = _), do: {:ok, []}
+  def subscribe(%__MODULE__{} = _), do: {:ok, []}
 
-  def handle_events(time, values, acc) do
+  def handle_events(values, acc) do
+    time = VTS.time_now()
+
     new_notifs =
       values
       |> Enum.reverse()
@@ -16,9 +20,9 @@ defmodule MarbleTesting.Observer do
     {:ok, new_notifs ++ acc}
   end
 
-  def handle_done(time, acc), do: {:ok, [{time, :done} | acc]}
+  def handle_done(acc), do: {:ok, [{VTS.time_now(), :done} | acc]}
 
-  def handle_error(time, error, acc), do: {:ok, [{time, :error, error} | acc]}
+  def handle_error(error, acc), do: {:ok, [{VTS.time_now(), :error, error} | acc]}
 
-  def unsubscribe(_time, _reason, acc), do: Enum.reverse(acc)
+  def unsubscribe(_reason, acc), do: Enum.reverse(acc)
 end

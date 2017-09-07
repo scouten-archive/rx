@@ -5,12 +5,12 @@ defmodule Rx.Observable.ToNotifications do
 
   defstruct [:source, :started_by]
 
-  def handle_events(_time, events, state), do:
+  def handle_events(events, state), do:
     {:events, Enum.map(events, &({:next, &1})), state}
 
-  def handle_done(_time, state), do:
+  def handle_done(state), do:
     {:done, [:done], state}
 
-  def handle_error(_time, error, state), do:
+  def handle_error(error, state), do:
     {:done, [{:error, error}], state}
 end
