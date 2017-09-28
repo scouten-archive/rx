@@ -277,7 +277,8 @@ defmodule Rx.SubjectTest do
   #   expect(results3).to.deep.equal([]);
   # });
   #
-  # it('should not allow values to be nexted after it is unsubscribed', (done: MochaDone) => {
+  # it('should not allow values to be nexted after it is unsubscribed',
+  #     (done: MochaDone) => {
   #   const subject = new Subject();
   #   const expected = ['foo'];
   #
@@ -402,7 +403,8 @@ defmodule Rx.SubjectTest do
   #   expect(outputComplete).to.be.true;
   # });
   #
-  # it('should be an Observer which can be given to Observable.subscribe', (done: MochaDone) => {
+  # it('should be an Observer which can be given to Observable.subscribe',
+  #       (done: MochaDone) => {
   #   const source = Observable.of(1, 2, 3, 4, 5);
   #   const subject = new Subject();
   #   const expected = [1, 2, 3, 4, 5];
@@ -419,7 +421,8 @@ defmodule Rx.SubjectTest do
   #   source.subscribe(subject);
   # });
   #
-  # it('should be usable as an Observer of a finite delayed Observable', (done: MochaDone) => {
+  # it('should be usable as an Observer of a finite delayed Observable',
+  #       (done: MochaDone) => {
   #   const source = Rx.Observable.of(1, 2, 3).delay(50);
   #   const subject = new Rx.Subject();
   #

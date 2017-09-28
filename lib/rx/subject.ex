@@ -22,7 +22,7 @@ defmodule Rx.Subject do
 
   # def error(subject, error) do ...
 
-  defp enforce_sendable_subject(subject, fun) do
+  defp enforce_sendable_subject(subject, f) do
     enforce(subject)
     try do
       %{pid: pid, ref: ref} = subject
@@ -31,7 +31,7 @@ defmodule Rx.Subject do
       MatchError ->
         raise ArgumentError,
               ~s"""
-              Rx.Subject.#{fun} received a Subject that can not receive arbitrary messages.
+              Rx.Subject.#{f} received a Subject that can not receive arbitrary messages.
 
               #{inspect subject}
 

@@ -56,9 +56,10 @@ defmodule Rx.Internal.ValidSubjectTest do
 
     test "rejects a valid Observable" do
       o = %MarbleTesting.ColdObservable{}
+      fname = "Rx.Internal.ValidSubjectTest.call_enforce_1/1"
       assert_raise ArgumentError,
         """
-        Rx.Internal.ValidSubjectTest.call_enforce_1/1 received a value that is not a valid Rx.Subject.
+        #{fname} received a value that is not a valid Rx.Subject.
 
         %MarbleTesting.ColdObservable{log_target_pid: nil, notifs: nil, started_by: nil}
 
