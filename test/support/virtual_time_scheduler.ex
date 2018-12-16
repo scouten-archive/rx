@@ -16,6 +16,10 @@ defmodule VirtualTimeScheduler do
     |> run_tasks()
   end
 
+  # TODO: Add flags to above to make it continuable.
+  # TODO: Add ability to introduce tasks from outside.
+  # TODO: Add ability to extract multiple results, not just v.root.
+
   defp run_tasks(%__MODULE__{pending_tasks: []} = v), do: v.terminate_results[v.root]
   defp run_tasks(%__MODULE__{pending_tasks: [current_task | remaining_tasks]} = v) do
     v = %{v | pending_tasks: remaining_tasks}
