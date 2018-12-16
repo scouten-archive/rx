@@ -23,6 +23,21 @@ defmodule MarbleTesting do
   end
 
   @doc ~S"""
+  Creates a hot observable for use in marble testing.
+
+  This function takes a marble diagram (see `marbles/2`) and returns a
+  special instance of Rx.Subject which will generate the events for a
+  transform stage to process at the specified (virtual) times.
+  """
+  def hot(marbles, options \\ []) do
+    if String.contains?(marbles, "!"), do:
+      raise ArgumentError, ~S/hot observable cannot have unsubscription marker "!"/
+
+    notifs = marbles(marbles, options)
+    %__MODULE__.HotObservable{notifs: notifs, log_target_pid: self()}
+  end
+
+  @doc ~S"""
   Runs a marble test on a single Observable.
 
   Subscribes to the Observable, runs it synchronously to completion using

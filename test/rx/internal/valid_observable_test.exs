@@ -8,6 +8,10 @@ defmodule Rx.Internal.ValidObservableTest do
       assert_is_observable(%MarbleTesting.ColdObservable{}, "x")
     end
 
+    test "accepts a valid Subject" do
+      assert_is_observable(%MarbleTesting.HotObservable{}, "x")
+    end
+
     test "rejects an invalid Observable" do
       assert_raise ArgumentError,
         """
@@ -41,6 +45,11 @@ defmodule Rx.Internal.ValidObservableTest do
       assert call_enforce_1(o) == o
     end
 
+    test "accepts a valid Subject" do
+      o = %MarbleTesting.HotObservable{}
+      assert call_enforce_1(o) == o
+    end
+
     test "rejects an invalid Observable" do
       assert_raise ArgumentError,
         "Rx.Internal.ValidObservableTest.call_enforce_1/1 " <>
@@ -57,6 +66,10 @@ defmodule Rx.Internal.ValidObservableTest do
   describe "enforce/2" do
     test "accepts a valid Observable" do
       call_enforce_2(%MarbleTesting.ColdObservable{}, "blah")
+    end
+
+    test "accepts a valid Subject" do
+      call_enforce_2(%MarbleTesting.HotObservable{}, "blah")
     end
 
     test "rejects an invalid Observable" do
